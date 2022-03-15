@@ -49,12 +49,19 @@ public class WMSPickDemandItemDAO extends BaseDAO {
 
 			String wSQL = "";
 			if (wWMSPickDemandItem.getID() <= 0) {
-				wSQL = MessageFormat.format(
-						"INSERT INTO {0}.wms_pickdemanditem(DemandID,MaterialID,MaterialNo,MaterialName,FQTY,WBSNo,PartPointID,PartPointCode,PartPointName,RowNo,GroupFlag,ReplaceType,ReplaceTypeText,OutSourceType,OutSourceTypeText) VALUES(:DemandID,:MaterialID,:MaterialNo,:MaterialName,:FQTY,:WBSNo,:PartPointID,:PartPointCode,:PartPointName,:RowNo,:GroupFlag,:ReplaceType,:ReplaceTypeText,:OutSourceType,:OutSourceTypeText);",
-						wInstance.Result);
+				wSQL = MessageFormat.format("INSERT INTO {0}.wms_pickdemanditem(DemandID,MaterialID,MaterialNo,"
+						+ "MaterialName,FQTY,WBSNo,PartPointID,PartPointCode,PartPointName,"
+						+ "RowNo,GroupFlag,ReplaceType,ReplaceTypeText,OutSourceType,OutSourceTypeText,AssessmentType,KittingFlag) "
+						+ "VALUES(:DemandID,:MaterialID,:MaterialNo,:MaterialName,:FQTY,:WBSNo,:PartPointID,"
+						+ ":PartPointCode,:PartPointName,:RowNo,:GroupFlag,:ReplaceType,:ReplaceTypeText,"
+						+ ":OutSourceType,:OutSourceTypeText,:AssessmentType,:KittingFlag);", wInstance.Result);
 			} else {
 				wSQL = MessageFormat.format(
-						"UPDATE {0}.wms_pickdemanditem SET DemandID = :DemandID,MaterialID = :MaterialID,MaterialNo = :MaterialNo,MaterialName = :MaterialName,FQTY = :FQTY,WBSNo = :WBSNo,PartPointID = :PartPointID,PartPointCode = :PartPointCode,PartPointName = :PartPointName,RowNo = :RowNo,GroupFlag = :GroupFlag,ReplaceType = :ReplaceType,ReplaceTypeText = :ReplaceTypeText,OutSourceType = :OutSourceType,OutSourceTypeText = :OutSourceTypeText WHERE ID = :ID;",
+						"UPDATE {0}.wms_pickdemanditem SET DemandID = :DemandID,MaterialID = :MaterialID,"
+								+ "MaterialNo = :MaterialNo,MaterialName = :MaterialName,FQTY = :FQTY,WBSNo = :WBSNo,"
+								+ "PartPointID = :PartPointID,PartPointCode = :PartPointCode,PartPointName = :PartPointName,"
+								+ "RowNo = :RowNo,GroupFlag = :GroupFlag,ReplaceType = :ReplaceType,ReplaceTypeText = :ReplaceTypeText,"
+								+ "OutSourceType = :OutSourceType,OutSourceTypeText = :OutSourceTypeText,AssessmentType=:AssessmentType,KittingFlag=:KittingFlag WHERE ID = :ID;",
 						wInstance.Result);
 			}
 
@@ -78,6 +85,8 @@ public class WMSPickDemandItemDAO extends BaseDAO {
 			wParamMap.put("ReplaceTypeText", wWMSPickDemandItem.ReplaceTypeText);
 			wParamMap.put("OutSourceType", wWMSPickDemandItem.OutSourceType);
 			wParamMap.put("OutSourceTypeText", wWMSPickDemandItem.OutSourceTypeText);
+			wParamMap.put("AssessmentType", wWMSPickDemandItem.AssessmentType);
+			wParamMap.put("KittingFlag", wWMSPickDemandItem.KittingFlag);
 
 			KeyHolder keyHolder = new GeneratedKeyHolder();
 			SqlParameterSource wSqlParameterSource = new MapSqlParameterSource(wParamMap);
@@ -207,6 +216,8 @@ public class WMSPickDemandItemDAO extends BaseDAO {
 				wItem.ReplaceTypeText = StringUtils.parseString(wReader.get("ReplaceTypeText"));
 				wItem.OutSourceType = StringUtils.parseInt(wReader.get("OutSourceType"));
 				wItem.OutSourceTypeText = StringUtils.parseString(wReader.get("OutSourceTypeText"));
+				wItem.AssessmentType = StringUtils.parseString(wReader.get("AssessmentType"));
+				wItem.KittingFlag = StringUtils.parseString(wReader.get("KittingFlag"));
 
 				wResultList.add(wItem);
 			}
@@ -225,5 +236,35 @@ public class WMSPickDemandItemDAO extends BaseDAO {
 		if (Instance == null)
 			Instance = new WMSPickDemandItemDAO();
 		return Instance;
+	}
+
+	public List<Integer> SelectDemandList(BMSEmployee wLoginUser, String wMaterial, OutResult<Integer> wErrorCode) {
+		List<Integer> wResult = new ArrayList<Integer>();
+		try {
+			ServiceResult<String> wInstance = this.GetDataBaseName(wLoginUser.getCompanyID(), MESDBSource.Basic,
+					wLoginUser.getID(), 0);
+			wErrorCode.set(wInstance.ErrorCode);
+			if (wErrorCode.Result != 0) {
+				return wResult;
+			}
+
+			String wSQL = StringUtils.Format("SELECT distinct DemandID FROM {0}.wms_pickdemanditem where "
+					+ "MaterialNo like ''%{1}%'' or MaterialName like ''%{1}%'';", wInstance.Result, wMaterial);
+
+			Map<String, Object> wParamMap = new HashMap<String, Object>();
+
+			wSQL = this.DMLChange(wSQL);
+
+			List<Map<String, Object>> wQueryResult = nameJdbcTemplate.queryForList(wSQL, wParamMap);
+
+			for (Map<String, Object> wReader : wQueryResult) {
+				int wDemandID = StringUtils.parseInt(wReader.get("DemandID"));
+				if (wDemandID > 0 && !wResult.stream().anyMatch(p -> p.intValue() == wDemandID))
+					wResult.add(wDemandID);
+			}
+		} catch (Exception ex) {
+			logger.error(ex.toString());
+		}
+		return wResult;
 	}
 }

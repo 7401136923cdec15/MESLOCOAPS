@@ -31,6 +31,10 @@ public class WMSPickDemand implements Serializable {
 	 */
 	public String OrderType = "";
 	/**
+	 * 发运订单类型：产线领料订单100，换料领料订单101
+	 */
+	public String OrderTypeText = "";
+	/**
 	 * 工位物料需求单号
 	 */
 	public String DemandNo = "";
@@ -39,9 +43,17 @@ public class WMSPickDemand implements Serializable {
 	 */
 	public Calendar ExpectTime1 = Calendar.getInstance();
 	/**
+	 * 预期到货日期
+	 */
+	public String ExpectTime1Text = "";
+	/**
 	 * 预期到货时间2(最迟到货时间)
 	 */
 	public Calendar ExpectTime2 = Calendar.getInstance();
+	/**
+	 * 预期到货时间2(最迟到货时间)
+	 */
+	public String ExpectTime2Text = "";
 	/**
 	 * 工位班组长工号
 	 */
@@ -79,6 +91,10 @@ public class WMSPickDemand implements Serializable {
 	 */
 	public String CustomerCode = "";
 	/**
+	 * 订单ID
+	 */
+	public int OrderID = 0;
+	/**
 	 * 车号
 	 */
 	public String PartNo = "";
@@ -95,6 +111,30 @@ public class WMSPickDemand implements Serializable {
 	 */
 	public String PartCode = "";
 	/**
+	 * 分拣员ID
+	 */
+	public int SorterID = 0;
+	/**
+	 * 分拣员名称
+	 */
+	public String Sorter = "";
+	/**
+	 * 分拣员工号
+	 */
+	public String SorterNo = "";
+	/**
+	 * 分拣时刻
+	 */
+	public Calendar SorterTime = Calendar.getInstance();
+	/**
+	 * 分拣时刻文本
+	 */
+	public String SorterTimeText = "";
+	/**
+	 * 配送员ID
+	 */
+	public int DeliveryID = 0;
+	/**
 	 * 配送员名称
 	 */
 	public String DeliveryMan = "";
@@ -106,6 +146,14 @@ public class WMSPickDemand implements Serializable {
 	 * 配送时刻
 	 */
 	public Calendar DeliveryTime = Calendar.getInstance();
+	/**
+	 * 配送时刻
+	 */
+	public String DeliveryTimeText = "";
+	/**
+	 * 接收人ID
+	 */
+	public int ReceiveID = 0;
 	/**
 	 * 接收人名称
 	 */
@@ -119,9 +167,29 @@ public class WMSPickDemand implements Serializable {
 	 */
 	public Calendar ReceiveTime = Calendar.getInstance();
 	/**
+	 * 接收时刻
+	 */
+	public String ReceiveTimeText = "";
+	/**
 	 * 领料需求单状态
 	 */
 	public int Status = 0;
+	/**
+	 * 状态
+	 */
+	public String StatusText = "";
+	/**
+	 * 推送状态
+	 */
+	public int SendStatus = 0;
+	/**
+	 * 推送状态
+	 */
+	public String SendStatusText = "";
+	/**
+	 * 推送描述
+	 */
+	public String SendDesc = "";
 	/**
 	 * 创建人
 	 */
@@ -135,9 +203,17 @@ public class WMSPickDemand implements Serializable {
 	 */
 	public Calendar CreateTime = Calendar.getInstance();
 	/**
+	 * 创建时刻
+	 */
+	public String CreateTimeText = "";
+	/**
 	 * 领料需求
 	 */
 	public List<WMSPickDemandItem> ItemList = new ArrayList<WMSPickDemandItem>();
+	/**
+	 * 项目号
+	 */
+	public String WBSNo = "";
 
 	public WMSPickDemand() {
 		super();
@@ -145,10 +221,10 @@ public class WMSPickDemand implements Serializable {
 
 	public WMSPickDemand(int iD, String factory, String orderType, String demandNo, Calendar expectTime1,
 			Calendar expectTime2, String monitorNo, String monitor, int productID, String productNo, int lineID,
-			String lineName, int customerID, String customerName, String customerCode, String partNo, int partID,
-			String partName, String partCode, String deliveryMan, String deliveryNo, Calendar deliveryTime,
+			String lineName, int customerID, String customerName, String customerCode, int orderID, String partNo,
+			int partID, String partName, String partCode, String deliveryMan, String deliveryNo, Calendar deliveryTime,
 			String receiveMan, String receiveNo, Calendar receiveTime, int status, int createID, String creator,
-			Calendar createTime) {
+			Calendar createTime, String wBSNo) {
 		super();
 		ID = iD;
 		Factory = factory;
@@ -165,6 +241,7 @@ public class WMSPickDemand implements Serializable {
 		CustomerID = customerID;
 		CustomerName = customerName;
 		CustomerCode = customerCode;
+		OrderID = orderID;
 		PartNo = partNo;
 		PartID = partID;
 		PartName = partName;
@@ -179,6 +256,7 @@ public class WMSPickDemand implements Serializable {
 		CreateID = createID;
 		Creator = creator;
 		CreateTime = createTime;
+		WBSNo = wBSNo;
 	}
 
 	public int getID() {
@@ -419,5 +497,157 @@ public class WMSPickDemand implements Serializable {
 
 	public void setItemList(List<WMSPickDemandItem> itemList) {
 		ItemList = itemList;
+	}
+
+	public int getOrderID() {
+		return OrderID;
+	}
+
+	public void setOrderID(int orderID) {
+		OrderID = orderID;
+	}
+
+	public String getOrderTypeText() {
+		return OrderTypeText;
+	}
+
+	public void setOrderTypeText(String orderTypeText) {
+		OrderTypeText = orderTypeText;
+	}
+
+	public String getExpectTime1Text() {
+		return ExpectTime1Text;
+	}
+
+	public void setExpectTime1Text(String expectTime1Text) {
+		ExpectTime1Text = expectTime1Text;
+	}
+
+	public String getExpectTime2Text() {
+		return ExpectTime2Text;
+	}
+
+	public void setExpectTime2Text(String expectTime2Text) {
+		ExpectTime2Text = expectTime2Text;
+	}
+
+	public String getDeliveryTimeText() {
+		return DeliveryTimeText;
+	}
+
+	public void setDeliveryTimeText(String deliveryTimeText) {
+		DeliveryTimeText = deliveryTimeText;
+	}
+
+	public String getReceiveTimeText() {
+		return ReceiveTimeText;
+	}
+
+	public void setReceiveTimeText(String receiveTimeText) {
+		ReceiveTimeText = receiveTimeText;
+	}
+
+	public String getStatusText() {
+		return StatusText;
+	}
+
+	public void setStatusText(String statusText) {
+		StatusText = statusText;
+	}
+
+	public String getCreateTimeText() {
+		return CreateTimeText;
+	}
+
+	public void setCreateTimeText(String createTimeText) {
+		CreateTimeText = createTimeText;
+	}
+
+	public int getSendStatus() {
+		return SendStatus;
+	}
+
+	public void setSendStatus(int sendStatus) {
+		SendStatus = sendStatus;
+	}
+
+	public String getSendStatusText() {
+		return SendStatusText;
+	}
+
+	public void setSendStatusText(String sendStatusText) {
+		SendStatusText = sendStatusText;
+	}
+
+	public String getSendDesc() {
+		return SendDesc;
+	}
+
+	public void setSendDesc(String sendDesc) {
+		SendDesc = sendDesc;
+	}
+
+	public String getWBSNo() {
+		return WBSNo;
+	}
+
+	public void setWBSNo(String wBSNo) {
+		WBSNo = wBSNo;
+	}
+
+	public int getSorterID() {
+		return SorterID;
+	}
+
+	public void setSorterID(int sorterID) {
+		SorterID = sorterID;
+	}
+
+	public String getSorter() {
+		return Sorter;
+	}
+
+	public void setSorter(String sorter) {
+		Sorter = sorter;
+	}
+
+	public String getSorterNo() {
+		return SorterNo;
+	}
+
+	public void setSorterNo(String sorterNo) {
+		SorterNo = sorterNo;
+	}
+
+	public Calendar getSorterTime() {
+		return SorterTime;
+	}
+
+	public void setSorterTime(Calendar sorterTime) {
+		SorterTime = sorterTime;
+	}
+
+	public int getDeliveryID() {
+		return DeliveryID;
+	}
+
+	public void setDeliveryID(int deliveryID) {
+		DeliveryID = deliveryID;
+	}
+
+	public int getReceiveID() {
+		return ReceiveID;
+	}
+
+	public void setReceiveID(int receiveID) {
+		ReceiveID = receiveID;
+	}
+
+	public String getSorterTimeText() {
+		return SorterTimeText;
+	}
+
+	public void setSorterTimeText(String sorterTimeText) {
+		SorterTimeText = sorterTimeText;
 	}
 }

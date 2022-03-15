@@ -45,6 +45,7 @@ import com.mes.loco.aps.server.service.po.fpc.FPCRoute;
 import com.mes.loco.aps.server.service.po.fpc.FPCRoutePart;
 import com.mes.loco.aps.server.service.po.lfs.LFSWorkAreaStation;
 import com.mes.loco.aps.server.service.po.mcs.MCSLogInfo;
+import com.mes.loco.aps.server.service.po.mrp.MRPMaterialPlan;
 import com.mes.loco.aps.server.service.po.mss.MSSBOMItem;
 import com.mes.loco.aps.server.service.po.oms.OMSOrder;
 import com.mes.loco.aps.server.service.po.oms.OMSOutsourceOrder;
@@ -536,25 +537,25 @@ public interface APSService {
 			List<Integer> wLineList, List<Integer> wStatusList, List<Integer> wProductList, String wPartNo,
 			List<Integer> wActiveList, Calendar wStartTime, Calendar wEndTime);
 
-	/**
-	 * 自动创建台车BOM
-	 */
-	void APS_AutoCreateBOM(BMSEmployee adminUser);
+//	/**
+//	 * 自动创建台车BOM
+//	 */
+//	void APS_AutoCreateBOM(BMSEmployee adminUser);
 
 	/**
 	 * 自动更新台车BOM(推送SAP)
 	 */
 	ServiceResult<Integer> APS_UpdateBomItemByBOMItem(BMSEmployee wLoginUser, int wOrderID);
 
-	/**
-	 * 自动更新台车BOM(推送SAP)
-	 */
-	void APS_AutoUpdateBOM(BMSEmployee adminUser);
-
-	/**
-	 * 自动更新台车订单(推送SAP)
-	 */
-	void APS_AutoUpdateOrder(BMSEmployee adminUser);
+//	/**
+//	 * 自动更新台车BOM(推送SAP)
+//	 */
+//	void APS_AutoUpdateBOM(BMSEmployee adminUser);
+//
+//	/**
+//	 * 自动更新台车订单(推送SAP)
+//	 */
+//	void APS_AutoUpdateOrder(BMSEmployee adminUser);
 
 	/**
 	 * 自动生成竣工确认单
@@ -840,4 +841,26 @@ public interface APSService {
 	 * 工位找班组长
 	 */
 	ServiceResult<List<BMSEmployee>> APS_QueryUserByParts(BMSEmployee wLoginUser, String wPartIDs);
+
+	/**
+	 * 查询配料需求计划
+	 */
+	ServiceResult<List<MRPMaterialPlan>> MRP_QueryMaterialPlanList(BMSEmployee wLoginUser, int wProductID, int wLineID,
+			int wCustomerID, int wOrderID, int wPartID, int wStepID, String wMaterial, int wMaterialType,
+			int wReplaceType, int wOutSourceType, Calendar wStartTime, Calendar wEndTime);
+
+	/**
+	 * 手动触发物料配送单
+	 */
+	ServiceResult<Integer> MRP_HandTrigger(BMSEmployee wLoginUser, int wOrderID, int wPartID);
+
+	/**
+	 * 自动将物料需求计划生成物料配送单
+	 */
+	void APS_AutoCreateDeliveryOrder(BMSEmployee adminUser);
+
+	/**
+	 * 自动推送物料配送单至WMS
+	 */
+	void APS_AutoSendDemandList(BMSEmployee adminUser);
 }

@@ -636,4 +636,39 @@ public class SFCBOMTaskController extends BaseController {
 		}
 		return wResult;
 	}
+
+	/**
+	 * 委外处理(是否互换件√上)
+	 */
+	@GetMapping("/OutsourcingProcess")
+	public Object OutsourcingProcess(HttpServletRequest request) {
+		Object wResult = new Object();
+		try {
+			if (CheckCookieEmpty(request)) {
+				wResult = GetResult(RetCode.SERVER_CODE_UNLOGIN, "");
+				return wResult;
+			}
+
+			BMSEmployee wLoginUser = GetSession(request);
+
+			// 获取参数
+			int wSFCBomTaskID = StringUtils.parseInt(request.getParameter("SFCBomTaskID"));
+
+			if (wSFCBomTaskID <= 0) {
+				return GetResult(RetCode.SERVER_CODE_ERR, RetCode.SERVER_RST_ERROR_OUT);
+			}
+
+			ServiceResult<Integer> wServiceResult = wSFCService.SFC_OutsourcingProcess(wLoginUser, wSFCBomTaskID);
+
+			if (StringUtils.isEmpty(wServiceResult.FaultCode)) {
+				wResult = GetResult(RetCode.SERVER_CODE_SUC, "", wServiceResult.Result, null);
+			} else {
+				wResult = GetResult(RetCode.SERVER_CODE_ERR, wServiceResult.FaultCode);
+			}
+		} catch (Exception ex) {
+			logger.error(ex.toString());
+			wResult = GetResult(RetCode.SERVER_CODE_ERR, ex.toString(), null, null);
+		}
+		return wResult;
+	}
 }

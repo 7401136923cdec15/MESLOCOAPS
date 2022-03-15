@@ -18,15 +18,19 @@ import com.mes.loco.aps.server.service.mesenum.FPCPartTypes;
 import com.mes.loco.aps.server.service.mesenum.LFSStationType;
 import com.mes.loco.aps.server.service.mesenum.MBSRoleTree;
 import com.mes.loco.aps.server.service.mesenum.MESException;
+import com.mes.loco.aps.server.service.mesenum.MRPMaterialPlanStatus;
 import com.mes.loco.aps.server.service.mesenum.OMSOrderPriority;
 import com.mes.loco.aps.server.service.mesenum.OMSOrderStatus;
 import com.mes.loco.aps.server.service.mesenum.SFCOrderFormType;
+import com.mes.loco.aps.server.service.mesenum.SFCOutSourceType;
+import com.mes.loco.aps.server.service.mesenum.SFCReplaceType;
 import com.mes.loco.aps.server.service.mesenum.SFCTaskStepType;
 import com.mes.loco.aps.server.service.mesenum.SFCTaskType;
 import com.mes.loco.aps.server.service.mesenum.SFCTurnOrderTaskStatus;
 import com.mes.loco.aps.server.service.mesenum.TCMChangeType;
 import com.mes.loco.aps.server.service.mesenum.TagTypes;
 import com.mes.loco.aps.server.service.mesenum.TaskQueryType;
+import com.mes.loco.aps.server.service.mesenum.WMSOrderType;
 import com.mes.loco.aps.server.service.po.APIResult;
 import com.mes.loco.aps.server.service.po.OutResult;
 import com.mes.loco.aps.server.service.po.ServiceResult;
@@ -94,6 +98,7 @@ import com.mes.loco.aps.server.service.po.lfs.LFSStoreHouse;
 import com.mes.loco.aps.server.service.po.lfs.LFSWorkAreaChecker;
 import com.mes.loco.aps.server.service.po.lfs.LFSWorkAreaStation;
 import com.mes.loco.aps.server.service.po.mcs.MCSLogInfo;
+import com.mes.loco.aps.server.service.po.mrp.MRPMaterialPlan;
 import com.mes.loco.aps.server.service.po.mss.MSSBOM;
 import com.mes.loco.aps.server.service.po.mss.MSSBOMItem;
 import com.mes.loco.aps.server.service.po.mss.MSSMaterial;
@@ -116,6 +121,8 @@ import com.mes.loco.aps.server.service.po.sfc.SFCTaskStep;
 import com.mes.loco.aps.server.service.po.sfc.SFCTaskStepInfo;
 import com.mes.loco.aps.server.service.po.tcm.TCMMaterialChangeItems;
 import com.mes.loco.aps.server.service.po.tcm.TCMMaterialChangeLog;
+import com.mes.loco.aps.server.service.po.wms.WMSPickDemand;
+import com.mes.loco.aps.server.service.po.wms.WMSPickDemandItem;
 import com.mes.loco.aps.server.service.utils.CalendarUtil;
 import com.mes.loco.aps.server.service.utils.CloneTool;
 import com.mes.loco.aps.server.service.utils.Configuration;
@@ -158,6 +165,7 @@ import com.mes.loco.aps.server.serviceimpl.dao.aps.APSTriggerPartDAO;
 import com.mes.loco.aps.server.serviceimpl.dao.bms.BMSWorkChargeItemDAO;
 import com.mes.loco.aps.server.serviceimpl.dao.fpc.FPCRouteDAO;
 import com.mes.loco.aps.server.serviceimpl.dao.mcs.MCSLogInfoDAO;
+import com.mes.loco.aps.server.serviceimpl.dao.mrp.MRPMaterialPlanDAO;
 import com.mes.loco.aps.server.serviceimpl.dao.oms.OMSOrderDAO;
 import com.mes.loco.aps.server.serviceimpl.dao.sch.SCHSecondmentApplyDAO;
 import com.mes.loco.aps.server.serviceimpl.dao.sfc.SFCBOMTaskDAO;
@@ -165,6 +173,8 @@ import com.mes.loco.aps.server.serviceimpl.dao.sfc.SFCBOMTaskItemDAO;
 import com.mes.loco.aps.server.serviceimpl.dao.sfc.SFCOrderFormDAO;
 import com.mes.loco.aps.server.serviceimpl.dao.sfc.SFCTaskStepDAO;
 import com.mes.loco.aps.server.serviceimpl.dao.tcm.TCMMaterialChangeLogDAO;
+import com.mes.loco.aps.server.serviceimpl.dao.wms.WMSPickDemandDAO;
+import com.mes.loco.aps.server.serviceimpl.dao.wms.WMSPickDemandItemDAO;
 import com.mes.loco.aps.server.serviceimpl.utils.MESServer;
 import com.mes.loco.aps.server.serviceimpl.utils.aps.APSAutoUtils;
 import com.mes.loco.aps.server.serviceimpl.utils.aps.APSConstans;
@@ -5360,15 +5370,21 @@ public class APSServiceImpl implements APSService {
 					APSSchedulingVersionDAO.getInstance().Update(wLoginUser, wScheduling, wErrorCode);
 
 					if (wData.APSShiftPeriod == APSShiftPeriod.Week.getValue()) {
-
 						wScheduling.APSTaskPartList = APSTaskPartDAO.getInstance().SelectListByIDList(wLoginUser,
 								wScheduling.TaskPartIDList, wErrorCode);
 
 						// 触发日计划
-//						APSConstans.mAPSSchedulingVersion = wScheduling;
 						ExecutorService wES = Executors.newFixedThreadPool(1);
 						wES.submit(() -> APS_TriggerDayPlans(wLoginUser, wScheduling));
 						wES.shutdown();
+
+						String materialManage = Configuration.readConfigString("materialManage", "config/config");
+						if (materialManage.equals("1")) {
+							// 触发物料需求计划
+							ExecutorService wES1 = Executors.newFixedThreadPool(1);
+							wES1.submit(() -> APS_TriggerMRP(wLoginUser, wData, wScheduling));
+							wES1.shutdown();
+						}
 					}
 				}
 			} else if (wData.Status == 21) {
@@ -5392,6 +5408,150 @@ public class APSServiceImpl implements APSService {
 			logger.error(e.toString());
 		}
 		return wResult;
+	}
+
+	/**
+	 * 触发物料需求计划
+	 */
+	private void APS_TriggerMRP(BMSEmployee wLoginUser, APSSchedulingVersionBPM wAPSSchedulingVersionBPM,
+			APSSchedulingVersion wScheduling) {
+		try {
+			OutResult<Integer> wErrorCode = new OutResult<Integer>(0);
+
+			String wMRPMaterialPlanDays = Configuration.readConfigString("mrpmaterialplandays", "config/config");
+			int wPlanDays = StringUtils.parseInt(wMRPMaterialPlanDays);
+			// ①遍历工位计划
+			for (APSTaskPart wAPSTaskPart : wScheduling.APSTaskPartList) {
+				// ②禁用该订单、该工位的物料需求计划(必换件、委外必修件)
+				MRPMaterialPlanDAO.getInstance().DisableMainPlan(wLoginUser, wAPSTaskPart.OrderID, wAPSTaskPart.PartID,
+						wErrorCode);
+				if (wErrorCode.Result != 0) {
+					logger.error("禁用必换和必修件物料需求计划失败,建议检查程序!");
+					return;
+				}
+				// ③查询台车bom(必换件、委外必修件)
+				List<APSBOMItem> wList = APSBOMItemDAO.getInstance().APS_QueryBOMItemList(wLoginUser,
+						wAPSTaskPart.OrderID, "", "", -1, -1, -1, wAPSTaskPart.PartID, -1, -1, "", -1, -1, -1, null, -1,
+						-1, -1, wErrorCode);
+				if (wList == null || wList.size() <= 0) {
+					continue;
+				}
+				// ④创建物料需求计划
+				List<MRPMaterialPlan> wPlanList = new ArrayList<MRPMaterialPlan>();
+				for (APSBOMItem apsbomItem : wList) {
+					MRPMaterialPlan wMRPMaterialPlan = new MRPMaterialPlan(0, apsbomItem.ProductID, apsbomItem.LineID,
+							apsbomItem.CustomerID, apsbomItem.OrderID, apsbomItem.PartNo, apsbomItem.PartID,
+							apsbomItem.PartPointID, apsbomItem.MaterialID, apsbomItem.MaterialName,
+							apsbomItem.MaterialNo, 1, apsbomItem.Number, wAPSTaskPart.StartTime,
+							wAPSSchedulingVersionBPM.Code, 1, Calendar.getInstance(), wLoginUser.ID,
+							apsbomItem.ReplaceType, apsbomItem.OutsourceType, 1, apsbomItem.WBSNo,
+							apsbomItem.AssessmentType);
+					MRPMaterialPlanDAO.getInstance().Update(wLoginUser, wMRPMaterialPlan, wErrorCode);
+					wPlanList.add(wMRPMaterialPlan);
+				}
+
+				Calendar wSTime = (Calendar) wAPSTaskPart.StartTime.clone();
+				wSTime.add(Calendar.DATE, -wPlanDays);
+				wSTime.set(wSTime.get(Calendar.YEAR), wSTime.get(Calendar.MONTH), wSTime.get(Calendar.DATE), 0, 0, 0);
+
+				Calendar wTTime = Calendar.getInstance();
+				wTTime.set(wTTime.get(Calendar.YEAR), wTTime.get(Calendar.MONTH), wTTime.get(Calendar.DATE), 0, 0, 0);
+
+				if (wTTime.compareTo(wSTime) >= 0 && wPlanList.size() > 0) {
+					// ⑤触发物料配送单
+					TriggerMaterialDistributionSheet(BaseDAO.SysAdmin, wPlanList,
+							MRPMaterialPlanStatus.SystemSubmit.getValue());
+				}
+			}
+		} catch (Exception ex) {
+			logger.error(ex.toString());
+		}
+	}
+
+	/**
+	 * 触发物料配送单
+	 * 
+	 * @param wLoginUser   登录信息
+	 * @param wList        必换件、委外必修件台车bom
+	 * @param wAPSTaskPart 工位计划
+	 */
+	private void TriggerMaterialDistributionSheet(BMSEmployee wLoginUser, List<MRPMaterialPlan> wList,
+			int wMRPMaterialPlanStatus) {
+		try {
+			OutResult<Integer> wErrorCode = new OutResult<Integer>(0);
+
+			OMSOrder wOMSOrder = OMSOrderDAO.getInstance().SelectByID(wLoginUser, wList.get(0).OrderID, wErrorCode);
+
+			// 判断需求是否已提
+			List<WMSPickDemand> wExsitList = WMSPickDemandDAO.getInstance().SelectList(wLoginUser, -1,
+					String.valueOf(WMSOrderType.LineOrder.getValue()), "", wList.get(0).ProductID, wList.get(0).LineID,
+					wList.get(0).CustomerID, wList.get(0).OrderID, wList.get(0).PartID, -1, null, null, null,
+					wErrorCode);
+			if (wExsitList.size() > 0) {
+				// 取消计划，或不指定
+				return;
+			}
+			// ③创建领料需求单
+			Calendar wBaseTime = Calendar.getInstance();
+			wBaseTime.set(2000, 0, 1, 0, 0, 0);
+
+			String wCode = WMSPickDemandDAO.getInstance().GetNewCode(wLoginUser, wErrorCode);
+			Calendar wTime = wList.get(0).DemandDate;
+
+			Calendar expectTime1 = Calendar.getInstance();
+			expectTime1.set(wTime.get(Calendar.YEAR), wTime.get(Calendar.MONTH), wTime.get(Calendar.DATE), 0, 0, 0);
+
+			Calendar expectTime2 = Calendar.getInstance();
+			expectTime2.set(wTime.get(Calendar.YEAR), wTime.get(Calendar.MONTH), wTime.get(Calendar.DATE), 12, 0, 0);
+
+			String monitorNo = "";
+			String monitor = "";
+			BMSEmployee wUser = WMSPickDemandDAO.getInstance().GetMonitorByPart(wLoginUser, wList.get(0).PartID,
+					wErrorCode);
+			if (StringUtils.isNotEmpty(wUser.LoginID)) {
+				monitorNo = wUser.LoginID;
+				monitor = wUser.Name;
+			}
+
+			WMSPickDemand wWMSPickDemand = new WMSPickDemand(0, "1900",
+					String.valueOf(WMSOrderType.LineOrder.getValue()), wCode, expectTime1, expectTime2, monitorNo,
+					monitor, wList.get(0).ProductID, wList.get(0).ProductNo, wList.get(0).LineID, wList.get(0).LineName,
+					wList.get(0).CustomerID, APSConstans.GetCRMCustomer(wList.get(0).CustomerID).CustomerName,
+					APSConstans.GetCRMCustomer(wList.get(0).CustomerID).CustomerCode, wList.get(0).OrderID,
+					wList.get(0).PartNo, wList.get(0).PartID, APSConstans.GetFPCPartName(wList.get(0).PartID),
+					APSConstans.GetFPCPart(wList.get(0).PartID).Code, "", "", wBaseTime, "", "", wBaseTime, 1,
+					wLoginUser.ID, wLoginUser.Name, Calendar.getInstance(), wList.get(0).WBSNo);
+			int wDemandID = WMSPickDemandDAO.getInstance().Update(wLoginUser, wWMSPickDemand, wErrorCode);
+			if (wDemandID <= 0) {
+				return;
+			}
+			// ④创建领料需求单明细
+			int wIndex = 1;
+			for (MRPMaterialPlan wMSSBOMItem : wList) {
+				WMSPickDemandItem wWMSPickDemandItem = new WMSPickDemandItem(0, wDemandID, wMSSBOMItem.MaterialID,
+						wMSSBOMItem.MaterialNo, wMSSBOMItem.MaterialName, wMSSBOMItem.FQTY, wOMSOrder.OrderNo,
+						wMSSBOMItem.StepID, APSConstans.GetFPCPartPoint(wMSSBOMItem.StepID).Code.replace("PS-", ""),
+						APSConstans.GetFPCPartPointName(wMSSBOMItem.StepID), String.valueOf(wIndex), "",
+						wMSSBOMItem.ReplaceType, SFCReplaceType.getEnumType(wMSSBOMItem.ReplaceType).getLable(),
+						wMSSBOMItem.OutSourceType, SFCOutSourceType.getEnumType(wMSSBOMItem.OutSourceType).getLable(),
+						wMSSBOMItem.AssessmentType, "");
+				WMSPickDemandItemDAO.getInstance().Update(wLoginUser, wWMSPickDemandItem, wErrorCode);
+				wIndex++;
+			}
+			// ⑤关联物料需求计划
+			List<MRPMaterialPlan> wPList = wList.stream()
+					.filter(p -> p.OrderID == wList.get(0).OrderID && p.PartID == wList.get(0).PartID && p.Active == 1)
+					.collect(Collectors.toList());
+			for (MRPMaterialPlan mrpMaterialPlan : wPList) {
+				mrpMaterialPlan.Status = wMRPMaterialPlanStatus;
+				mrpMaterialPlan.EditID = wLoginUser.ID;
+				mrpMaterialPlan.EditTime = Calendar.getInstance();
+				mrpMaterialPlan.WMSPickDemandID = wDemandID;
+				MRPMaterialPlanDAO.getInstance().Update(wLoginUser, mrpMaterialPlan, wErrorCode);
+			}
+		} catch (Exception ex) {
+			logger.error(ex.toString());
+		}
 	}
 
 	@Override
@@ -7665,55 +7825,6 @@ public class APSServiceImpl implements APSService {
 			logger.error(e.toString());
 		}
 		return wResult;
-	}
-
-	@Override
-	public synchronized void APS_AutoCreateBOM(BMSEmployee wAdminUser) {
-		try {
-//			if (APSConstans.mIBomOrderList != null && APSConstans.mIBomOrderList.size() > 0) {
-//				for (Integer wOrderID : APSConstans.mIBomOrderList) {
-//					APSServiceImpl.getInstance().APS_CreateBomItemByOrder(wAdminUser, wOrderID);
-//				}
-//				APSConstans.mIBomOrderList = null;
-//			}
-		} catch (Exception ex) {
-			logger.error(ex.toString());
-		}
-	}
-
-	@Override
-	public void APS_AutoUpdateBOM(BMSEmployee wAdminUser) {
-		try {
-//			if (APSConstans.mUBomOrderList != null && APSConstans.mUBomOrderList.size() > 0) {
-//				List<Integer> wDeleteList = new ArrayList<Integer>();
-//				for (Integer wBOMItemID : APSConstans.mUBomOrderList) {
-//					APSServiceImpl.getInstance().APS_UpdateBomItemByBOMItem(wAdminUser, wBOMItemID);
-//					wDeleteList.add(wBOMItemID);
-//				}
-//				APSConstans.mUBomOrderList.removeIf(p -> wDeleteList.stream().anyMatch(q -> q == p));
-//			}
-		} catch (Exception ex) {
-			logger.error(ex.toString());
-		}
-	}
-
-	@Override
-	public void APS_AutoUpdateOrder(BMSEmployee wAdminUser) {
-		try {
-//			if (APSConstans.mUOrderList != null && APSConstans.mUOrderList.size() > 0) {
-//				// 推送订单到SAP
-//				String wFlag = Configuration.readConfigString("isSendSAP", "config/config");
-//				if (wFlag.equals("1")) {
-//					for (OMSOrder wOMSOrder : APSConstans.mUOrderList) {
-//						SendToSAP(wAdminUser, wOMSOrder);
-//					}
-//				}
-//
-//				APSConstans.mUOrderList = null;
-//			}
-		} catch (Exception ex) {
-			logger.error(ex.toString());
-		}
 	}
 
 	@Override
@@ -11713,6 +11824,117 @@ public class APSServiceImpl implements APSService {
 			logger.error(e.toString());
 		}
 		return wResult;
+	}
+
+	@Override
+	public ServiceResult<List<MRPMaterialPlan>> MRP_QueryMaterialPlanList(BMSEmployee wLoginUser, int wProductID,
+			int wLineID, int wCustomerID, int wOrderID, int wPartID, int wStepID, String wMaterial, int wMaterialType,
+			int wReplaceType, int wOutSourceType, Calendar wStartTime, Calendar wEndTime) {
+		ServiceResult<List<MRPMaterialPlan>> wResult = new ServiceResult<List<MRPMaterialPlan>>();
+		wResult.Result = new ArrayList<MRPMaterialPlan>();
+		try {
+			OutResult<Integer> wErrorCode = new OutResult<Integer>(0);
+
+			wResult.Result = MRPMaterialPlanDAO.getInstance().SelectList(wLoginUser, -1, wProductID, wLineID,
+					wCustomerID, wOrderID, wPartID, wStepID, -1, "", "", wMaterialType, "", 1, wReplaceType,
+					wOutSourceType, wStartTime, wEndTime, null, null, wMaterial, wErrorCode);
+
+			wResult.setFaultCode(MESException.getEnumType(wErrorCode.Result).getLable());
+		} catch (Exception e) {
+			wResult.FaultCode += e.toString();
+			logger.error(e.toString());
+		}
+		return wResult;
+	}
+
+	@Override
+	public ServiceResult<Integer> MRP_HandTrigger(BMSEmployee wLoginUser, int wOrderID, int wPartID) {
+		ServiceResult<Integer> wResult = new ServiceResult<Integer>(0);
+		try {
+			OutResult<Integer> wErrorCode = new OutResult<Integer>(0);
+
+			List<MRPMaterialPlan> wList = MRPMaterialPlanDAO.getInstance().SelectList(wLoginUser, -1, -1, -1, -1,
+					wOrderID, wPartID, -1, -1, "", "", -1, "", 1, -1, -1, null, null, null, null, "", wErrorCode);
+			if (wList.stream().anyMatch(p -> p.Status != MRPMaterialPlanStatus.Save.getValue())) {
+				wResult.FaultCode += "提示：当前工位的物料配送单已生成!";
+				return wResult;
+			}
+
+			this.TriggerMaterialDistributionSheet(wLoginUser, wList, MRPMaterialPlanStatus.HandSubmit.getValue());
+
+			wResult.setFaultCode(MESException.getEnumType(wErrorCode.Result).getLable());
+		} catch (Exception e) {
+			wResult.FaultCode += e.toString();
+			logger.error(e.toString());
+		}
+		return wResult;
+	}
+
+	/**
+	 * 自动将物料需求计划生成物料配送单
+	 */
+	@Override
+	public void APS_AutoCreateDeliveryOrder(BMSEmployee wLoginUser) {
+		try {
+			OutResult<Integer> wErrorCode = new OutResult<Integer>(0);
+
+			// ①查询状态为保存的物料需求计划
+			String wMRPMaterialPlanDays = Configuration.readConfigString("mrpmaterialplandays", "config/config");
+			int wPlanDays = StringUtils.parseInt(wMRPMaterialPlanDays);
+			Calendar wToday = Calendar.getInstance();
+			wToday.add(Calendar.DATE, wPlanDays);
+			wToday.set(Calendar.HOUR_OF_DAY, 23);
+			wToday.set(Calendar.MINUTE, 59);
+			wToday.set(Calendar.SECOND, 59);
+
+			List<MRPMaterialPlan> wList = MRPMaterialPlanDAO.getInstance().SelectAutoList(wLoginUser, wToday,
+					wErrorCode);
+			// ②遍历，判断是否满足自动推送时间
+			for (MRPMaterialPlan wMRPMaterialPlan : wList) {
+				List<MRPMaterialPlan> wItemList = MRPMaterialPlanDAO.getInstance().SelectList(wLoginUser, -1, -1, -1,
+						-1, wMRPMaterialPlan.OrderID, wMRPMaterialPlan.PartID, -1, -1, "", "", -1, "", 1, -1, -1, null,
+						null, null, null, "", wErrorCode);
+				// ③若满足，自动推送
+				this.TriggerMaterialDistributionSheet(wLoginUser, wItemList,
+						MRPMaterialPlanStatus.SystemSubmit.getValue());
+			}
+		} catch (Exception e) {
+			logger.error(e.toString());
+		}
+	}
+
+	/**
+	 * 自动推送物料配送单至WMS
+	 */
+	@Override
+	public void APS_AutoSendDemandList(BMSEmployee wLoginUser) {
+		try {
+			OutResult<Integer> wErrorCode = new OutResult<Integer>(0);
+
+			String wSendToWMS = Configuration.readConfigString("sendtowms", "config/config");
+			if (!wSendToWMS.equals("1")) {
+				return;
+			}
+
+			// ①查询状态为保存的物料需求计划
+			String wWMSPickDemandDays = Configuration.readConfigString("wmspickdemanddays", "config/config");
+			int wPlanDays = StringUtils.parseInt(wWMSPickDemandDays);
+
+			Calendar wToday = Calendar.getInstance();
+			wToday.add(Calendar.DATE, wPlanDays);
+			wToday.set(Calendar.HOUR_OF_DAY, 23);
+			wToday.set(Calendar.MINUTE, 59);
+			wToday.set(Calendar.SECOND, 59);
+
+			List<Integer> wList = WMSPickDemandDAO.getInstance().SelectAutoList(wLoginUser, wToday, wErrorCode);
+			// ②遍历，判断是否满足自动推送时间
+			for (int wWMSPickDemandID : wList) {
+				// ③若满足，自动推送
+				WMSServiceImpl.getInstance().WMS_ManualPush(wLoginUser, wWMSPickDemandID);
+			}
+		} catch (Exception e) {
+			logger.error(e.toString());
+		}
 	}
 }
 

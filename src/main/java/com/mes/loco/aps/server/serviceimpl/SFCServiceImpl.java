@@ -81,6 +81,7 @@ import com.mes.loco.aps.server.serviceimpl.dao.andon.AndonDAO;
 import com.mes.loco.aps.server.serviceimpl.dao.aps.APSBOMItemDAO;
 import com.mes.loco.aps.server.serviceimpl.dao.aps.APSTaskPartDAO;
 import com.mes.loco.aps.server.serviceimpl.dao.aps.APSTaskStepDAO;
+import com.mes.loco.aps.server.serviceimpl.dao.mss.MSSBOMItemDAO;
 import com.mes.loco.aps.server.serviceimpl.dao.mss.MSSBOMItemHistoryDAO;
 import com.mes.loco.aps.server.serviceimpl.dao.oms.OMSOrderDAO;
 import com.mes.loco.aps.server.serviceimpl.dao.sch.SCHSecondmentApplyDAO;
@@ -201,11 +202,13 @@ public class SFCServiceImpl implements SFCService {
 					for (String wID : wIDs) {
 						Integer wUserID = StringUtils.parseInt(wID);
 						if (wUserID > 0) {
-							BMSEmployee wPersonItem = wEmployeeList.stream().filter(p -> (p.ID == wUserID)).findFirst()
-									.get();
-							wPersonItem.Name = StringUtils.Format("{0}({1})", wPersonItem.Name,
-									APSConstans.GetBMSDepartmentName(wPersonItem.DepartmentID));
-							wResult.Result.add(wPersonItem);
+							if (wEmployeeList.stream().anyMatch(p -> p.ID == wUserID)) {
+								BMSEmployee wPersonItem = wEmployeeList.stream().filter(p -> (p.ID == wUserID))
+										.findFirst().get();
+								wPersonItem.Name = StringUtils.Format("{0}({1})", wPersonItem.Name,
+										APSConstans.GetBMSDepartmentName(wPersonItem.DepartmentID));
+								wResult.Result.add(wPersonItem);
+							}
 						}
 					}
 				}
@@ -1594,6 +1597,27 @@ public class SFCServiceImpl implements SFCService {
 				});
 			}
 
+			// 驳回后修改子项物料状态
+			if (wTask.Status == 31) {
+				wTask.SFCBOMTaskItemList.forEach(p -> {
+					if (p.Level == 1) {
+						p.Status = 2;
+					}
+				});
+			} else if (wTask.Status == 32) {
+				wTask.SFCBOMTaskItemList.forEach(p -> {
+					if (p.Level == 2) {
+						p.Status = 2;
+					}
+				});
+			} else if (wTask.Status == 33) {
+				wTask.SFCBOMTaskItemList.forEach(p -> {
+					if (p.Level == 3) {
+						p.Status = 2;
+					}
+				});
+			}
+
 			wResult.Result = (SFCBOMTask) SFCBOMTaskDAO.getInstance().BPM_UpdateTask(wLoginUser, wTask, wErrorCode);
 			wResult.setFaultCode(MESException.getEnumType(wErrorCode.Result).getLable());
 
@@ -1626,11 +1650,91 @@ public class SFCServiceImpl implements SFCService {
 						.filter(p -> p.Level == 1 && p.Status != 2).collect(Collectors.toList());
 				SynchronizedToSap(wLoginUser, wTask, wErrorCode, wItemList);
 			}
+
+			// ①物料自动评级触发
+			if (wTask.Status == 3) {
+				ExecutorService wES = Executors.newFixedThreadPool(1);
+				wES.submit(() -> MaterialAutomaticRating(wTask));
+				wES.shutdown();
+			}
+
+			// ②物料等级回写
+			if (wTask.Status == 4) {
+				ExecutorService wES = Executors.newFixedThreadPool(1);
+				wES.submit(() -> MaterialLevelBackWrite(wTask));
+				wES.shutdown();
+			}
 		} catch (Exception e) {
 			wResult.FaultCode += e.toString();
 			logger.error(e.toString());
 		}
 		return wResult;
+	}
+
+	/**
+	 * 物料等级自动回写
+	 */
+	private void MaterialLevelBackWrite(SFCBOMTask wTask) {
+		try {
+			OutResult<Integer> wErrorCode = new OutResult<Integer>(0);
+			// ①遍历子项，依次查询等级，并保存
+			for (SFCBOMTaskItem wSFCBOMTaskItem : wTask.SFCBOMTaskItemList) {
+				int wLevel = SFCBOMTaskDAO.getInstance().SFC_QueryLevelByMaterialID(BaseDAO.SysAdmin,
+						wSFCBOMTaskItem.MaterialID, wErrorCode);
+				if (wLevel > 0) {
+					continue;
+				}
+
+				SFCBOMTaskDAO.getInstance().SFC_UpdateMaterialLevel(BaseDAO.SysAdmin, wSFCBOMTaskItem.Level,
+						wSFCBOMTaskItem.MaterialID, wErrorCode);
+			}
+		} catch (Exception ex) {
+			logger.error(ex.toString());
+		}
+	}
+
+	/**
+	 * 物料自动评级
+	 */
+	private void MaterialAutomaticRating(SFCBOMTask wTask) {
+		try {
+			OutResult<Integer> wErrorCode = new OutResult<Integer>(0);
+			// ①遍历子项，依次查询等级，并保存
+			for (SFCBOMTaskItem wSFCBOMTaskItem : wTask.SFCBOMTaskItemList) {
+				int wLevel = SFCBOMTaskDAO.getInstance().SFC_QueryLevelByMaterialID(BaseDAO.SysAdmin,
+						wSFCBOMTaskItem.MaterialID, wErrorCode);
+				if (wLevel <= 0) {
+					continue;
+				}
+				wSFCBOMTaskItem.Level = wLevel;
+				SFCBOMTaskItemDAO.getInstance().Update(BaseDAO.SysAdmin, wSFCBOMTaskItem, wErrorCode);
+			}
+			// ②判断，若存在没有等级的物料，返回不处理
+			if (wTask.SFCBOMTaskItemList.stream().anyMatch(p -> p.Level <= 0)) {
+				return;
+			}
+			// ③LevelA、LevelB、LevelC赋值
+			if (wTask.SFCBOMTaskItemList.stream().anyMatch(p -> p.Level == 1)) {
+				wTask.LevelA = true;
+			}
+			if (wTask.SFCBOMTaskItemList.stream().anyMatch(p -> p.Level == 2)) {
+				wTask.LevelB = true;
+			}
+			if (wTask.SFCBOMTaskItemList.stream().anyMatch(p -> p.Level == 3)) {
+				wTask.LevelC = true;
+			}
+			// ④完成任务节点
+			wTask.Status = 4;
+
+			List<BPMActivitiHisTask> wNewTaskList = BPMServiceImpl.getInstance()
+					.BPM_GetHistoryInstanceByID(BaseDAO.SysAdmin, wTask.FlowID).List(BPMActivitiHisTask.class);
+			wNewTaskList = wNewTaskList.stream().filter(p -> p.Status == 0).collect(Collectors.toList());
+
+			CoreServiceImpl.getInstance().QMS_CompleteInstance(BaseDAO.SysAdmin, wTask, wNewTaskList.get(0).ID)
+					.Info(SFCBOMTask.class);
+		} catch (Exception ex) {
+			logger.error(ex.toString());
+		}
 	}
 
 	/**
@@ -2319,11 +2423,11 @@ public class SFCServiceImpl implements SFCService {
 				return;
 			}
 			// ②根据互检单查询互检待办消息
-			int wMessageCount = SFCTaskStepDAO.getInstance().QueryMutualMessageCount(wLoginUser, wMutualTaskID,
-					wErrorCode);
-			if (wMessageCount > 0) {
-				return;
-			}
+//			int wMessageCount = SFCTaskStepDAO.getInstance().QueryMutualMessageCount(wLoginUser, wMutualTaskID,
+//					wErrorCode);
+//			if (wMessageCount > 0) {
+//				return;
+//			}
 			// ③若没有，查询自检人
 			String wSelfOpes = SFCTaskStepDAO.getInstance().QuerySelfOpes(wLoginUser, wData.ID, wErrorCode);
 			if (StringUtils.isEmpty(wSelfOpes)) {
@@ -2343,6 +2447,12 @@ public class SFCServiceImpl implements SFCService {
 			int wShiftID = Integer.parseInt(wSDF.format(Calendar.getInstance().getTime()));
 			// ①若只有一个班长，则自己做自检、自己做互检
 			for (SFCTaskStep wSFCTaskStep : wList) {
+				boolean wIsSend = SFCTaskStepDAO.getInstance().JudgeMessageIsSend(wLoginUser, wSFCTaskStep.OperatorID,
+						wMutualTaskID, BPMEventModule.MutualCheck.getValue(), wErrorCode);
+				if (wIsSend) {
+					continue;
+				}
+
 				wMessage = new BFCMessage();
 				wMessage.Active = 0;
 				wMessage.CompanyID = 0;
@@ -4293,6 +4403,53 @@ public class SFCServiceImpl implements SFCService {
 						.get().EndTime;
 				SFCBOMTaskDAO.getInstance().UpdateSubmitTime(wLoginUser, wSFCBOMTask, wEndTime, wErrorCode);
 			}
+
+			wResult.setFaultCode(MESException.getEnumType(wErrorCode.Result).getLable());
+		} catch (Exception e) {
+			wResult.FaultCode += e.toString();
+			logger.error(e.toString());
+		}
+		return wResult;
+	}
+
+	@Override
+	public ServiceResult<Integer> SFC_OutsourcingProcess(BMSEmployee wLoginUser, int wSFCBomTaskID) {
+		ServiceResult<Integer> wResult = new ServiceResult<Integer>(0);
+		try {
+			OutResult<Integer> wErrorCode = new OutResult<Integer>(0);
+
+			// ①查询偶换件评审单
+			SFCBOMTask wSFCBOMTask = (SFCBOMTask) SFCBOMTaskDAO.getInstance().BPM_GetTaskInfo(wLoginUser, wSFCBomTaskID,
+					"", wErrorCode);
+			if (wSFCBOMTask == null || wSFCBOMTask.ID <= 0) {
+				return wResult;
+			}
+			// ②查询偶换件评审单明细
+			List<SFCBOMTaskItem> wItemList = SFCBOMTaskItemDAO.getInstance().SelectList(wLoginUser, -1, wSFCBomTaskID,
+					wErrorCode);
+			// ⑥根据SourceID和sourcetype查询台车BOM
+			for (SFCBOMTaskItem wSFCBOMTaskItem : wItemList) {
+				if (wSFCBOMTaskItem.BOMItemID <= 0) {
+					continue;
+				}
+
+				int wAPSBomItemID = APSBOMItemDAO.getInstance().SelectIDBySource(wLoginUser, wSFCBOMTaskItem.ID,
+						wErrorCode);
+				if (wAPSBomItemID <= 0) {
+					continue;
+				}
+
+				// ⑦调用接口删除台车BOM
+				APSServiceImpl.getInstance().APS_BomItemPropertyChange(wLoginUser, wAPSBomItemID, "X", 0);
+				// ④将子表outsourcetype改为2
+				wSFCBOMTaskItem.OutsourceType = 2;
+				SFCBOMTaskItemDAO.getInstance().Update(wLoginUser, wSFCBOMTaskItem, wErrorCode);
+				// ⑤遍历子表，修改对应标准BOM子项的outsourcetype为2
+				MSSBOMItemDAO.getInstance().UpdateOutsourceType(wLoginUser, wSFCBOMTaskItem.BOMItemID, wErrorCode);
+			}
+
+			// ⑩调用手动推送接口，推送偶换件
+			APSServiceImpl.getInstance().APS_BOMTaskToSAP(wLoginUser, wSFCBomTaskID);
 
 			wResult.setFaultCode(MESException.getEnumType(wErrorCode.Result).getLable());
 		} catch (Exception e) {

@@ -224,6 +224,10 @@ public class SFCBOMTask extends BPMTaskBase implements Serializable {
 	 */
 	public String QualityLossSmall = "";
 
+	public boolean LevelA = false;
+	public boolean LevelB = false;
+	public boolean LevelC = false;
+
 	public SFCBOMTask() {
 		super();
 	}
@@ -688,5 +692,29 @@ public class SFCBOMTask extends BPMTaskBase implements Serializable {
 
 	public void setQualityLossSmall(String qualityLossSmall) {
 		QualityLossSmall = qualityLossSmall;
+	}
+
+	public boolean isLevelA() {
+		return LevelA;
+	}
+
+	public void setLevelA(boolean levelA) {
+		LevelA = levelA;
+	}
+
+	public boolean isLevelB() {
+		return LevelB;
+	}
+
+	public void setLevelB(boolean levelB) {
+		LevelB = levelB;
+	}
+
+	public boolean isLevelC() {
+		return LevelC;
+	}
+
+	public void setLevelC(boolean levelC) {
+		LevelC = levelC;
 	}
 }

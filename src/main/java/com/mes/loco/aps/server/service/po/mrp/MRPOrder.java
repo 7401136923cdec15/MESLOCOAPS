@@ -3,8 +3,6 @@ package com.mes.loco.aps.server.service.po.mrp;
 import java.io.Serializable;
 import java.util.Calendar;
 
-import com.mes.loco.aps.server.service.mesenum.MRPOrderType;
-
 public class MRPOrder implements Serializable {
 	private static final long serialVersionUID = 1L;
 	
@@ -55,18 +53,18 @@ public class MRPOrder implements Serializable {
         this.DemandStartTime = Calendar.getInstance();
         this.DemandEndTime = Calendar.getInstance();
     }
-    public MRPOrder(MRPMaterial wMaterial)
-    {
-        this.Type = MRPOrderType.MRPOrder.getValue();
-        this.MaterialID = wMaterial.MaterialID;
-        this.MaterialNo = wMaterial.MaterialNo;
-        this.MaterialName = wMaterial.MaterialName;
-        this.FQTY = wMaterial.DemandFQTY;
-
-        this.WorkShopID = wMaterial.WorkShopID;
-        this.LineID = wMaterial.LineID;
-
-        this.DemandStartTime = wMaterial.DemandStartTime;
-        this.DemandEndTime = wMaterial.DemandEndTime;
-    }
+//    public MRPOrder(MRPMaterial wMaterial)
+//    {
+//        this.Type = MRPOrderType.MRPOrder.getValue();
+//        this.MaterialID = wMaterial.MaterialID;
+//        this.MaterialNo = wMaterial.MaterialNo;
+//        this.MaterialName = wMaterial.MaterialName;
+//        this.FQTY = wMaterial.DemandFQTY;
+//
+//        this.WorkShopID = wMaterial.WorkShopID;
+//        this.LineID = wMaterial.LineID;
+//
+//        this.DemandStartTime = wMaterial.DemandStartTime;
+//        this.DemandEndTime = wMaterial.DemandEndTime;
+//    }
 }

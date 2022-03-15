@@ -1071,4 +1071,38 @@ public class APSBOMItemDAO extends BaseDAO {
 		}
 		return wResult;
 	}
+
+	/**
+	 * 根据Source查询台车BOMID
+	 */
+	public int SelectIDBySource(BMSEmployee wLoginUser, int wSourceID, OutResult<Integer> wErrorCode) {
+		int wResult = 0;
+		try {
+			ServiceResult<String> wInstance = this.GetDataBaseName(wLoginUser.getCompanyID(), MESDBSource.Basic,
+					wLoginUser.getID(), 0);
+			wErrorCode.set(wInstance.ErrorCode);
+			if (wErrorCode.Result != 0) {
+				return wResult;
+			}
+
+			String wSQL = StringUtils.Format(
+					"SELECT ID FROM {0}.aps_bomitem WHERE " + "sourceid=:sourceid AND sourcetype=2 AND DeleteID='''';",
+					wInstance.Result);
+
+			Map<String, Object> wParamMap = new HashMap<String, Object>();
+
+			wParamMap.put("sourceid", wSourceID);
+
+			wSQL = this.DMLChange(wSQL);
+
+			List<Map<String, Object>> wQueryResult = nameJdbcTemplate.queryForList(wSQL, wParamMap);
+
+			for (Map<String, Object> wReader : wQueryResult) {
+				wResult = StringUtils.parseInt(wReader.get("ID"));
+			}
+		} catch (Exception ex) {
+			logger.error(ex.toString());
+		}
+		return wResult;
+	}
 }

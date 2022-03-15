@@ -49,17 +49,17 @@ public class MRPProduct implements Serializable {
         this.StartTime = Calendar.getInstance();
         this.EndTime = Calendar.getInstance();
     }
-    public MRPProduct(MRPMaterial wMaterial)
-    {
-        this.MRPID = 0;
-        this.MaterialID = wMaterial.MaterialID;
-        this.MaterialNo = wMaterial.MaterialNo;
-        this.MaterialName = wMaterial.MaterialName;
-        this.UnitID = wMaterial.UnitID;
-        this.UnitText = wMaterial.UnitText;
-        this.MarginFQTY = wMaterial.MarginFQTY;
-
-        this.StartTime = wMaterial.DemandStartTime;
-        this.EndTime = wMaterial.DemandEndTime;
-    }
+//    public MRPProduct(MRPMaterial wMaterial)
+//    {
+//        this.MRPID = 0;
+//        this.MaterialID = wMaterial.MaterialID;
+//        this.MaterialNo = wMaterial.MaterialNo;
+//        this.MaterialName = wMaterial.MaterialName;
+//        this.UnitID = wMaterial.UnitID;
+//        this.UnitText = wMaterial.UnitText;
+//        this.MarginFQTY = wMaterial.MarginFQTY;
+//
+//        this.StartTime = wMaterial.DemandStartTime;
+//        this.EndTime = wMaterial.DemandEndTime;
+//    }
 }

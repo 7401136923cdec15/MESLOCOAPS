@@ -54,24 +54,24 @@ public class MRPPurchase implements Serializable {
         this.PredictTime = Calendar.getInstance();
         this.ArrivalTime = Calendar.getInstance();
     }
-    public MRPPurchase(MRPMaterial wMaterial)
-    {
-        this.MRPID = 0;
-        this.MaterialID = wMaterial.MaterialID;
-        this.MaterialNo = wMaterial.MaterialNo;
-        this.MaterialName = wMaterial.MaterialName;
-        this.UnitID = wMaterial.UnitID;
-        this.UnitText = wMaterial.UnitText;
-        this.SafeMode = wMaterial.SafeMode;
-        this.MarginFQTY = wMaterial.MarginFQTY;
-        this.StockID = wMaterial.StockID;
-        this.SupplierID = wMaterial.SupplierID;
-        this.SupplierName = wMaterial.SupplierName;
-
-        this.DemandTime = wMaterial.DemandStartTime;
-        this.DemandTime = Calendar.getInstance();
-        this.OrderTime = Calendar.getInstance();
-        this.PredictTime = Calendar.getInstance();
-        this.ArrivalTime = Calendar.getInstance();
-    }
+//    public MRPPurchase(MRPMaterial wMaterial)
+//    {
+//        this.MRPID = 0;
+//        this.MaterialID = wMaterial.MaterialID;
+//        this.MaterialNo = wMaterial.MaterialNo;
+//        this.MaterialName = wMaterial.MaterialName;
+//        this.UnitID = wMaterial.UnitID;
+//        this.UnitText = wMaterial.UnitText;
+//        this.SafeMode = wMaterial.SafeMode;
+//        this.MarginFQTY = wMaterial.MarginFQTY;
+//        this.StockID = wMaterial.StockID;
+//        this.SupplierID = wMaterial.SupplierID;
+//        this.SupplierName = wMaterial.SupplierName;
+//
+//        this.DemandTime = wMaterial.DemandStartTime;
+//        this.DemandTime = Calendar.getInstance();
+//        this.OrderTime = Calendar.getInstance();
+//        this.PredictTime = Calendar.getInstance();
+//        this.ArrivalTime = Calendar.getInstance();
+//    }
 }

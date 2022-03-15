@@ -1234,4 +1234,64 @@ public class SFCBOMTaskDAO extends BaseDAO implements TaskBaseDAO {
 		}
 		return wResult;
 	}
+
+	/**
+	 * 根据物料ID查询物料等级
+	 */
+	public int SFC_QueryLevelByMaterialID(BMSEmployee wLoginUser, int materialID, OutResult<Integer> wErrorCode) {
+		int wResult = 0;
+		try {
+			ServiceResult<String> wInstance = this.GetDataBaseName(wLoginUser.getCompanyID(), MESDBSource.Basic,
+					wLoginUser.getID(), 0);
+			wErrorCode.set(wInstance.ErrorCode);
+			if (wErrorCode.Result != 0) {
+				return wResult;
+			}
+
+			String wSQL = StringUtils.Format("SELECT BOMID FROM {0}.mss_material WHERE ID=:ID;", wInstance.Result);
+
+			Map<String, Object> wParamMap = new HashMap<String, Object>();
+
+			wParamMap.put("ID", materialID);
+
+			wSQL = this.DMLChange(wSQL);
+
+			List<Map<String, Object>> wQueryResult = nameJdbcTemplate.queryForList(wSQL, wParamMap);
+
+			for (Map<String, Object> wReader : wQueryResult) {
+				wResult = StringUtils.parseInt(wReader.get("BOMID"));
+			}
+		} catch (Exception ex) {
+			logger.error(ex.toString());
+		}
+		return wResult;
+	}
+
+	public void SFC_UpdateMaterialLevel(BMSEmployee wLoginUser, int level, int wMaterialID,
+			OutResult<Integer> wErrorCode) {
+		try {
+			ServiceResult<String> wInstance = this.GetDataBaseName(wLoginUser.getCompanyID(), MESDBSource.Basic,
+					wLoginUser.getID(), 0);
+			wErrorCode.set(wInstance.ErrorCode);
+			if (wErrorCode.Result != 0) {
+				return;
+			}
+
+			String wSQL = StringUtils.Format("UPDATE {0}.mss_material SET BOMID=:BOMID WHERE ID=:ID;",
+					wInstance.Result);
+
+			Map<String, Object> wParamMap = new HashMap<String, Object>();
+
+			wParamMap.put("BOMID", level);
+			wParamMap.put("ID", wMaterialID);
+
+			wSQL = this.DMLChange(wSQL);
+
+			nameJdbcTemplate.update(wSQL, wParamMap);
+		} catch (Exception ex) {
+			logger.error(ex.toString());
+		}
+	}
+	
+	
 }

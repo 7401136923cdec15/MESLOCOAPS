@@ -3,8 +3,6 @@ package com.mes.loco.aps.server.service.po.mss;
 import java.io.Serializable;
 import java.util.Calendar;
 
-import com.mes.loco.aps.server.service.po.mrp.MRPMaterial;
-
 public class MSSMaterial implements Serializable {
 
 	private static final long serialVersionUID = 1L;
@@ -478,15 +476,15 @@ public class MSSMaterial implements Serializable {
 		return wMaterial;
 	}
 
-	public MRPMaterial MRPClone() {
-		MRPMaterial wMaterial = new MRPMaterial();
-		wMaterial.ID = this.ID;
-		wMaterial.MaterialID = this.ID;
-		wMaterial.MaterialNo = this.MaterialNo;
-		wMaterial.MaterialName = this.MaterialName;
-		wMaterial.UnitID = this.CYUnitID;
-		wMaterial.TypeID = this.TypeID;
-		wMaterial.StockID = this.StockID;
-		return wMaterial;
-	}
+//	public MRPMaterial MRPClone() {
+//		MRPMaterial wMaterial = new MRPMaterial();
+//		wMaterial.ID = this.ID;
+//		wMaterial.MaterialID = this.ID;
+//		wMaterial.MaterialNo = this.MaterialNo;
+//		wMaterial.MaterialName = this.MaterialName;
+//		wMaterial.UnitID = this.CYUnitID;
+//		wMaterial.TypeID = this.TypeID;
+//		wMaterial.StockID = this.StockID;
+//		return wMaterial;
+//	}
 }

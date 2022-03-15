@@ -1,5 +1,6 @@
 package com.mes.loco.aps.server.service;
 
+import java.util.Calendar;
 import java.util.List;
 
 import com.mes.loco.aps.server.service.po.APIResult;
@@ -50,10 +51,16 @@ public interface WMSService {
 
 	APIResult APS_BOMItemUpdate(BMSEmployee wLoginUser, APSBOMItem wAPSBOMItem);
 
-	ServiceResult<List<WMSPickDemand>> WMS_QueryPickDemandList(BMSEmployee wLoginUser, int wOrderType, String wDemandNo,
-			int wProductID, int wLineID, int wCustomerID, String wPartNo, int wPartID, int wStatus);
+	ServiceResult<List<WMSPickDemand>> WMS_QueryPickDemandList(BMSEmployee wLoginUser, String wOrderType,
+			String wDemandNo, int wProductID, int wLineID, int wCustomerID, int wOrderID, int wPartID, int wStatus,
+			String wMaterial, Calendar wStartTime, Calendar wEndTime);
 
 	ServiceResult<WMSPickDemand> WMS_QueryPickDemand(BMSEmployee wLoginUser, int wDemandID);
 
 	ServiceResult<Integer> WMS_TriggerPickDemandTask(BMSEmployee wLoginUser, int wOrderID, int wPartID);
+
+	/**
+	 * 手动推送
+	 */
+	ServiceResult<Integer> WMS_ManualPush(BMSEmployee wLoginUser, int wDemandID);
 }

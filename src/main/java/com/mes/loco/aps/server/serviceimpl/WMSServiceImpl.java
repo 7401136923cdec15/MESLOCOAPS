@@ -19,6 +19,7 @@ import com.mes.loco.aps.server.service.mesenum.MESException;
 import com.mes.loco.aps.server.service.mesenum.SFCOutSourceType;
 import com.mes.loco.aps.server.service.mesenum.SFCReplaceType;
 import com.mes.loco.aps.server.service.mesenum.WMSOrderType;
+import com.mes.loco.aps.server.service.mesenum.WMSPickDemandStatus;
 import com.mes.loco.aps.server.service.po.APIResult;
 import com.mes.loco.aps.server.service.po.OutResult;
 import com.mes.loco.aps.server.service.po.ServiceResult;
@@ -29,8 +30,12 @@ import com.mes.loco.aps.server.service.po.mss.MSSBOM;
 import com.mes.loco.aps.server.service.po.mss.MSSBOMItem;
 import com.mes.loco.aps.server.service.po.mss.MSSMaterial;
 import com.mes.loco.aps.server.service.po.oms.OMSOrder;
+import com.mes.loco.aps.server.service.po.wms.WMSLLDetail;
+import com.mes.loco.aps.server.service.po.wms.WMSLinePartLL;
+import com.mes.loco.aps.server.service.po.wms.WMSLinePartLLs;
 import com.mes.loco.aps.server.service.po.wms.WMSPickDemand;
 import com.mes.loco.aps.server.service.po.wms.WMSPickDemandItem;
+import com.mes.loco.aps.server.service.po.wms.WMSReturn;
 import com.mes.loco.aps.server.service.utils.StringUtils;
 import com.mes.loco.aps.server.serviceimpl.dao.aps.APSTaskPartDAO;
 import com.mes.loco.aps.server.serviceimpl.dao.mss.MSSBOMItemDAO;
@@ -333,15 +338,22 @@ public class WMSServiceImpl implements WMSService {
 	}
 
 	@Override
-	public ServiceResult<List<WMSPickDemand>> WMS_QueryPickDemandList(BMSEmployee wLoginUser, int wOrderType,
-			String wDemandNo, int wProductID, int wLineID, int wCustomerID, String wPartNo, int wPartID, int wStatus) {
+	public ServiceResult<List<WMSPickDemand>> WMS_QueryPickDemandList(BMSEmployee wLoginUser, String wOrderType,
+			String wDemandNo, int wProductID, int wLineID, int wCustomerID, int wOrderID, int wPartID, int wStatus,
+			String wMaterial, Calendar wStartTime, Calendar wEndTime) {
 		ServiceResult<List<WMSPickDemand>> wResult = new ServiceResult<List<WMSPickDemand>>();
 		wResult.Result = new ArrayList<WMSPickDemand>();
 		try {
 			OutResult<Integer> wErrorCode = new OutResult<Integer>(0);
 
-			wResult.Result = WMSPickDemandDAO.getInstance().SelectList(wLoginUser, -1, String.valueOf(wOrderType),
-					wDemandNo, wProductID, wLineID, wCustomerID, wPartNo, wPartID, wStatus, null, null, wErrorCode);
+			List<Integer> wIDList = new ArrayList<Integer>();
+			if (StringUtils.isNotEmpty(wMaterial)) {
+				wIDList = WMSPickDemandItemDAO.getInstance().SelectDemandList(wLoginUser, wMaterial, wErrorCode);
+			}
+
+			wResult.Result = WMSPickDemandDAO.getInstance().SelectList(wLoginUser, -1, wOrderType, wDemandNo,
+					wProductID, wLineID, wCustomerID, wOrderID, wPartID, wStatus, wStartTime, wEndTime, wIDList,
+					wErrorCode);
 
 			wResult.setFaultCode(MESException.getEnumType(wErrorCode.Result).getLable());
 		} catch (Exception e) {
@@ -369,8 +381,7 @@ public class WMSServiceImpl implements WMSService {
 	}
 
 	@Override
-	public synchronized ServiceResult<Integer> WMS_TriggerPickDemandTask(BMSEmployee wLoginUser, int wOrderID,
-			int wPartID) {
+	public ServiceResult<Integer> WMS_TriggerPickDemandTask(BMSEmployee wLoginUser, int wOrderID, int wPartID) {
 		ServiceResult<Integer> wResult = new ServiceResult<Integer>(0);
 		try {
 			OutResult<Integer> wErrorCode = new OutResult<Integer>(0);
@@ -380,7 +391,7 @@ public class WMSServiceImpl implements WMSService {
 			// 判断需求是否已提
 			List<WMSPickDemand> wExsitList = WMSPickDemandDAO.getInstance().SelectList(wLoginUser, -1,
 					String.valueOf(WMSOrderType.LineOrder.getValue()), "", wOrder.ProductID, wOrder.LineID,
-					wOrder.CustomerID, wOrder.PartNo, wPartID, -1, null, null, wErrorCode);
+					wOrder.CustomerID, wOrder.ID, wPartID, -1, null, null, null, wErrorCode);
 			if (wExsitList.size() > 0) {
 				wResult.FaultCode += "提示：该订单该工位的领料需求已存在!";
 				return wResult;
@@ -435,9 +446,10 @@ public class WMSServiceImpl implements WMSService {
 			WMSPickDemand wWMSPickDemand = new WMSPickDemand(0, "1900",
 					String.valueOf(WMSOrderType.LineOrder.getValue()), wCode, expectTime1, expectTime2, monitorNo,
 					monitor, wOrder.ProductID, wOrder.ProductNo, wOrder.LineID, wOrder.LineName, wOrder.CustomerID,
-					wOrder.Customer, APSConstans.GetCRMCustomer(wOrder.CustomerID).CustomerCode, wOrder.PartNo, wPartID,
-					APSConstans.GetFPCPartName(wPartID), APSConstans.GetFPCPart(wPartID).Code, "", "", wBaseTime, "",
-					"", wBaseTime, 1, wLoginUser.ID, wLoginUser.Name, Calendar.getInstance());
+					wOrder.Customer, APSConstans.GetCRMCustomer(wOrder.CustomerID).CustomerCode, wOrder.ID,
+					wOrder.PartNo, wPartID, APSConstans.GetFPCPartName(wPartID), APSConstans.GetFPCPart(wPartID).Code,
+					"", "", wBaseTime, "", "", wBaseTime, 1, wLoginUser.ID, wLoginUser.Name, Calendar.getInstance(),
+					wOrder.OrderNo);
 			int wDemandID = WMSPickDemandDAO.getInstance().Update(wLoginUser, wWMSPickDemand, wErrorCode);
 			if (wDemandID <= 0) {
 				wResult.FaultCode += "提示：产线工位领料需求单创建失败!";
@@ -452,7 +464,8 @@ public class WMSServiceImpl implements WMSService {
 						APSConstans.GetFPCPartPoint(wMSSBOMItem.PartPointID).Code.replace("PS-", ""),
 						APSConstans.GetFPCPartPointName(wMSSBOMItem.PartPointID), String.valueOf(wIndex), "",
 						wMSSBOMItem.ReplaceType, SFCReplaceType.getEnumType(wMSSBOMItem.ReplaceType).getLable(),
-						wMSSBOMItem.OutsourceType, SFCOutSourceType.getEnumType(wMSSBOMItem.OutsourceType).getLable());
+						wMSSBOMItem.OutsourceType, SFCOutSourceType.getEnumType(wMSSBOMItem.OutsourceType).getLable(),
+						"", "");
 				WMSPickDemandItemDAO.getInstance().Update(wLoginUser, wWMSPickDemandItem, wErrorCode);
 				wIndex++;
 			}
@@ -461,6 +474,80 @@ public class WMSServiceImpl implements WMSService {
 		} catch (Exception e) {
 			wResult.FaultCode += e.toString();
 			logger.error(e.toString());
+		}
+		return wResult;
+	}
+
+	@Override
+	public ServiceResult<Integer> WMS_ManualPush(BMSEmployee wLoginUser, int wDemandID) {
+		ServiceResult<Integer> wResult = new ServiceResult<Integer>(0);
+		try {
+			OutResult<Integer> wErrorCode = new OutResult<Integer>(0);
+
+			WMSPickDemand wPickDemand = WMSPickDemandDAO.getInstance().SelectByID(wLoginUser, wDemandID, wErrorCode);
+
+			List<WMSLinePartLL> wHeaderList = new ArrayList<WMSLinePartLL>();
+			WMSLinePartLL wWMSLinePartLL = GetWMSLinePartLL(wPickDemand);
+			wHeaderList.add(wWMSLinePartLL);
+			WMSLinePartLLs wWMSLinePartLLs = new WMSLinePartLLs(wHeaderList);
+			WMSReturn wReturn = MyHelperServiceImpl.getInstance().WMS_PostLL(wWMSLinePartLLs);
+			if (wReturn.returnFlag.equals("1")) {
+				wPickDemand.Status = WMSPickDemandStatus.Sended.getValue();
+				wPickDemand.SendStatus = 1;
+				wPickDemand.SendDesc = "推送成功";
+			} else {
+				wPickDemand.SendStatus = 2;
+
+				if (StringUtils.isEmpty(wReturn.returnDesc))
+					wPickDemand.SendDesc = "网络错误";
+				else
+					wPickDemand.SendDesc = wReturn.returnDesc;
+
+				wResult.FaultCode += wReturn.returnDesc;
+			}
+			WMSPickDemandDAO.getInstance().Update(wLoginUser, wPickDemand, wErrorCode);
+		} catch (Exception e) {
+			wResult.FaultCode += e.toString();
+			logger.error(e.toString());
+		}
+		return wResult;
+	}
+
+	/**
+	 * 将MES配送单转换为WMS领料单
+	 */
+	private WMSLinePartLL GetWMSLinePartLL(WMSPickDemand wPickDemand) {
+		WMSLinePartLL wResult = new WMSLinePartLL();
+		try {
+			wResult.customerId = wPickDemand.Factory;
+			wResult.orderType = wPickDemand.OrderType;
+			wResult.docNo = wPickDemand.DemandNo;
+			wResult.expectedShipmentTime1 = wPickDemand.ExpectTime1Text;
+			wResult.requiredDeliveryTime = wPickDemand.ExpectTime2Text;
+			wResult.consigneeId = wPickDemand.MonitorNo;
+			wResult.consigneeName = wPickDemand.Monitor;
+			wResult.hedi01 = wPickDemand.ProductNo;
+			wResult.hedi02 = wPickDemand.LineName;
+			wResult.hedi03 = wPickDemand.CustomerCode;
+			wResult.hedi04 = wPickDemand.PartNo;
+			wResult.hedi05 = wPickDemand.PartName;
+			wResult.hedi06 = wPickDemand.PartCode;
+			wResult.hedi07 = wPickDemand.WBSNo;
+			wResult.details = new ArrayList<WMSLLDetail>();
+			for (WMSPickDemandItem wWMSPickDemandItem : wPickDemand.ItemList) {
+				WMSLLDetail wWMSLLDetail = new WMSLLDetail();
+				wWMSLLDetail.sku = wWMSPickDemandItem.MaterialNo;
+				wWMSLLDetail.qtyOrdered = StringUtils.parseString(wWMSPickDemandItem.FQTY);
+				wWMSLLDetail.lotAtt08 = wPickDemand.WBSNo;
+				wWMSLLDetail.lotAtt11 = wWMSPickDemandItem.AssessmentType;
+				wWMSLLDetail.dedi04 = wWMSPickDemandItem.PartPointCode;
+				wWMSLLDetail.dedi05 = wWMSPickDemandItem.PartPointName;
+				wWMSLLDetail.dedi06 = wWMSPickDemandItem.RowNo;
+				wWMSLLDetail.userDefine1 = wWMSPickDemandItem.GroupFlag;
+				wWMSLLDetail.userDefine2 = wWMSPickDemandItem.KittingFlag;
+			}
+		} catch (Exception ex) {
+			logger.error(ex.toString());
 		}
 		return wResult;
 	}

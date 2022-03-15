@@ -273,4 +273,28 @@ public class MSSBOMItemDAO extends BaseDAO {
 		}
 		return wResult;
 	}
+
+	public void UpdateOutsourceType(BMSEmployee wLoginUser, int bOMItemID, OutResult<Integer> wErrorCode) {
+		try {
+			ServiceResult<String> wInstance = this.GetDataBaseName(wLoginUser.getCompanyID(), MESDBSource.Basic,
+					wLoginUser.getID(), 0);
+			wErrorCode.set(wInstance.ErrorCode);
+			if (wErrorCode.Result != 0) {
+				return;
+			}
+
+			String wSQL = StringUtils.Format("UPDATE {0}.mss_bomitem SET outsourcetype=2 WHERE ID=:ID;",
+					wInstance.Result);
+
+			Map<String, Object> wParamMap = new HashMap<String, Object>();
+
+			wParamMap.put("ID", bOMItemID);
+
+			wSQL = this.DMLChange(wSQL);
+
+			nameJdbcTemplate.update(wSQL, wParamMap);
+		} catch (Exception ex) {
+			logger.error(ex.toString());
+		}
+	}
 }

@@ -990,6 +990,45 @@ public class SFCTaskStepDAO extends BaseDAO {
 		}
 		return wResult;
 	}
+
+	/**
+	 * 判断消息是否存在
+	 */
+	public boolean JudgeMessageIsSend(BMSEmployee wLoginUser, int operatorID, int wMutualTaskID, int wModuleID,
+			OutResult<Integer> wErrorCode) {
+		boolean wResult = false;
+		try {
+			ServiceResult<String> wInstance = this.GetDataBaseName(wLoginUser.getCompanyID(), MESDBSource.Basic,
+					wLoginUser.getID(), 0);
+			wErrorCode.set(wInstance.ErrorCode);
+			if (wErrorCode.Result != 0) {
+				return wResult;
+			}
+
+			String wSQL = StringUtils
+					.Format("SELECT count(*) Number FROM {0}.bfc_message where ResponsorID=:ResponsorID "
+							+ "and Type=2 and ModuleID=:ModuleID and MessageID=:MessageID;", wInstance.Result);
+
+			Map<String, Object> wParamMap = new HashMap<String, Object>();
+
+			wParamMap.put("ResponsorID", operatorID);
+			wParamMap.put("ModuleID", wModuleID);
+			wParamMap.put("MessageID", wMutualTaskID);
+
+			wSQL = this.DMLChange(wSQL);
+
+			List<Map<String, Object>> wQueryResult = nameJdbcTemplate.queryForList(wSQL, wParamMap);
+
+			for (Map<String, Object> wReader : wQueryResult) {
+				int wNumber = StringUtils.parseInt(wReader.get("Number"));
+				if (wNumber > 0)
+					return true;
+			}
+		} catch (Exception ex) {
+			logger.error(ex.toString());
+		}
+		return wResult;
+	}
 }
 
 /*

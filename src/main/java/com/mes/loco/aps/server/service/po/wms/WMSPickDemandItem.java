@@ -24,6 +24,15 @@ public class WMSPickDemandItem implements Serializable {
 	 */
 	public int DemandID = 0;
 	/**
+	 * 需求单号
+	 */
+	public String DemandNo = "";
+	public String ProductNo = "";
+	public String LineName = "";
+	public String CustomerName = "";
+	public String PartNo = "";
+	public String PartName = "";
+	/**
 	 * 物料ID
 	 */
 	public int MaterialID = 0;
@@ -79,6 +88,14 @@ public class WMSPickDemandItem implements Serializable {
 	 * 必修偶修
 	 */
 	public String OutSourceTypeText = "";
+	/**
+	 * 评估类型
+	 */
+	public String AssessmentType = "";
+	/**
+	 * 齐套标记
+	 */
+	public String KittingFlag = "";
 
 	public WMSPickDemandItem() {
 		super();
@@ -86,7 +103,8 @@ public class WMSPickDemandItem implements Serializable {
 
 	public WMSPickDemandItem(int iD, int demandID, int materialID, String materialNo, String materialName, double fQTY,
 			String wBSNo, int partPointID, String partPointCode, String partPointName, String rowNo, String groupFlag,
-			int replaceType, String replaceTypeText, int outSourceType, String outSourceTypeText) {
+			int replaceType, String replaceTypeText, int outSourceType, String outSourceTypeText, String assessmentType,
+			String kittingFlag) {
 		super();
 		ID = iD;
 		DemandID = demandID;
@@ -104,6 +122,8 @@ public class WMSPickDemandItem implements Serializable {
 		ReplaceTypeText = replaceTypeText;
 		OutSourceType = outSourceType;
 		OutSourceTypeText = outSourceTypeText;
+		AssessmentType = assessmentType;
+		KittingFlag = kittingFlag;
 	}
 
 	public int getID() {
@@ -232,5 +252,69 @@ public class WMSPickDemandItem implements Serializable {
 
 	public void setOutSourceTypeText(String outSourceTypeText) {
 		OutSourceTypeText = outSourceTypeText;
+	}
+
+	public String getDemandNo() {
+		return DemandNo;
+	}
+
+	public void setDemandNo(String demandNo) {
+		DemandNo = demandNo;
+	}
+
+	public String getProductNo() {
+		return ProductNo;
+	}
+
+	public void setProductNo(String productNo) {
+		ProductNo = productNo;
+	}
+
+	public String getLineName() {
+		return LineName;
+	}
+
+	public void setLineName(String lineName) {
+		LineName = lineName;
+	}
+
+	public String getCustomerName() {
+		return CustomerName;
+	}
+
+	public void setCustomerName(String customerName) {
+		CustomerName = customerName;
+	}
+
+	public String getPartName() {
+		return PartName;
+	}
+
+	public void setPartName(String partName) {
+		PartName = partName;
+	}
+
+	public String getPartNo() {
+		return PartNo;
+	}
+
+	public void setPartNo(String partNo) {
+		PartNo = partNo;
+	}
+
+	public String getAssessmentType() {
+		return AssessmentType;
+	}
+
+	public void setAssessmentType(String assessmentType) {
+		AssessmentType = assessmentType;
+	}
+
+	public String getKittingFlag() {
+		return KittingFlag;
+	}
+
+	public void setKittingFlag(String kittingFlag) {
+		KittingFlag = kittingFlag;
 	}
 }

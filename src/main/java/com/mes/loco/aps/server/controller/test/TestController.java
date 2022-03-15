@@ -2,6 +2,7 @@ package com.mes.loco.aps.server.controller.test;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -20,13 +21,20 @@ import org.springframework.web.bind.annotation.RestController;
 import com.alibaba.fastjson.JSON;
 import com.mes.loco.aps.server.controller.BaseController;
 import com.mes.loco.aps.server.service.APSService;
+import com.mes.loco.aps.server.service.mesenum.SFCOutSourceType;
+import com.mes.loco.aps.server.service.mesenum.SFCReplaceType;
+import com.mes.loco.aps.server.service.mesenum.WMSOrderType;
 import com.mes.loco.aps.server.service.po.APIResult;
 import com.mes.loco.aps.server.service.po.OutResult;
 import com.mes.loco.aps.server.service.po.ServiceResult;
 import com.mes.loco.aps.server.service.po.aps.APSBOMItem;
+import com.mes.loco.aps.server.service.po.aps.APSSchedulingVersion;
+import com.mes.loco.aps.server.service.po.aps.APSSchedulingVersionBPM;
+import com.mes.loco.aps.server.service.po.aps.APSTaskPart;
 import com.mes.loco.aps.server.service.po.bms.BMSEmployee;
 import com.mes.loco.aps.server.service.po.bpm.BPMActivitiHisTask;
 import com.mes.loco.aps.server.service.po.bpm.BPMActivitiTask;
+import com.mes.loco.aps.server.service.po.mrp.MRPMaterialPlan;
 import com.mes.loco.aps.server.service.po.oms.OMSOrder;
 import com.mes.loco.aps.server.service.po.sap.APSBomData;
 import com.mes.loco.aps.server.service.po.sap.HEAD;
@@ -35,15 +43,22 @@ import com.mes.loco.aps.server.service.po.sap.ITEM;
 import com.mes.loco.aps.server.service.po.sap.OrderItem;
 import com.mes.loco.aps.server.service.po.sfc.SFCBOMTask;
 import com.mes.loco.aps.server.service.po.sfc.SFCBOMTaskItem;
+import com.mes.loco.aps.server.service.po.wms.WMSPickDemand;
+import com.mes.loco.aps.server.service.po.wms.WMSPickDemandItem;
 import com.mes.loco.aps.server.service.utils.CloneTool;
 import com.mes.loco.aps.server.service.utils.DesUtil;
 import com.mes.loco.aps.server.service.utils.StringUtils;
 import com.mes.loco.aps.server.serviceimpl.BPMServiceImpl;
 import com.mes.loco.aps.server.serviceimpl.CoreServiceImpl;
-import com.mes.loco.aps.server.serviceimpl.MyHelperServiceImpl;
 import com.mes.loco.aps.server.serviceimpl.dao.BaseDAO;
 import com.mes.loco.aps.server.serviceimpl.dao.aps.APSBOMItemDAO;
+import com.mes.loco.aps.server.serviceimpl.dao.aps.APSSchedulingVersionBPMDAO;
+import com.mes.loco.aps.server.serviceimpl.dao.aps.APSSchedulingVersionDAO;
+import com.mes.loco.aps.server.serviceimpl.dao.aps.APSTaskPartDAO;
+import com.mes.loco.aps.server.serviceimpl.dao.mrp.MRPMaterialPlanDAO;
 import com.mes.loco.aps.server.serviceimpl.dao.oms.OMSOrderDAO;
+import com.mes.loco.aps.server.serviceimpl.dao.wms.WMSPickDemandDAO;
+import com.mes.loco.aps.server.serviceimpl.dao.wms.WMSPickDemandItemDAO;
 import com.mes.loco.aps.server.serviceimpl.utils.aps.APSConstans;
 import com.mes.loco.aps.server.serviceimpl.utils.aps.APSUtils;
 import com.mes.loco.aps.server.utils.RetCode;
@@ -128,79 +143,6 @@ public class TestController extends BaseController {
 
 	private void testAndon(BMSEmployee wLoginUser) {
 		try {
-			// 台车BOM创建测试
-//			APSBomCreateTest(wLoginUser);
-
-			// 台车BOM变更测试
-//			APSBomChangeTest(wLoginUser);
-
-			// 生产订单变更测试
-//			OrderChangeTest(wLoginUser, 1615);
-
-//			APSBomDeleteTest(wLoginUser);
-
-//			OutResult<Integer> wErrorCode = new OutResult<Integer>(0);
-//			APSBOMItem wItem = APSBOMItemDAO.getInstance().APS_QueryBOMItemByID(wLoginUser, 184147, wErrorCode);
-//			APSServiceImpl.getInstance().APS_UpdateBOMItem(wLoginUser, wItem);
-
-//			OMSServiceImpl.getInstance().OMS_DisablePlan(wLoginUser, "151");
-
-//			APSServiceImpl.getInstance().APS_BOMTaskToSAP(wLoginUser, 166);
-//			APSServiceImpl.getInstance().APS_BOMTaskToSAP(wLoginUser, 207);
-
-//			OutResult<Integer> wErrorCode = new OutResult<Integer>(0);
-//			SFCBOMTask wInfo = (SFCBOMTask) SFCBOMTaskDAO.getInstance().BPM_GetTaskInfo(wLoginUser, 166, "",
-//					wErrorCode);
-//
-//			CopyProcess(wLoginUser, new ArrayList<SFCBOMTaskItem>(), wInfo, wErrorCode);
-
-//			ServiceResult<AndonLocomotiveProductionStatus> wRst = AndonServiceImpl.getInstance()
-//					.Andon_QueryProductionStatus(wLoginUser);
-//			System.out.println(wRst);
-
-//			ServiceResult<Integer> wRsl = APSServiceImpl.getInstance().APS_SendToSAPPro(wLoginUser, 1805, 0);
-//			System.out.println(wRsl);
-
-//			ServiceResult<Integer> wRSst = APSServiceImpl.getInstance().APS_ChangeLogAddToSAP(wLoginUser, 5);
-//			System.out.println(wRSst.toString());
-
-			// 479、1618
-			// 479、1619
-
-//			APSServiceImpl.getInstance().APS_AddAPSBOMToSAP(wLoginUser, 481, 1615);
-
-			// 测试能否取消删除标记
-//			APSServiceImpl.getInstance().APS_CancelDeleteX(wLoginUser, 271830);
-			// 245112、243368
-
-//			int wBOMID = 542;
-//			List<Integer> wBOMItemIDList = new ArrayList<Integer>(Arrays.asList(1325538, 1325539, 1325540));
-//			List<Integer> wOrderIDList = new ArrayList<Integer>(Arrays.asList(1654, 1655));
-//			APSServiceImpl.getInstance().SendSingleMaterial(wLoginUser, wBOMID, wBOMItemIDList, wOrderIDList);
-
-//			int wOrderID = 1619;
-//			int wAPSBOMID = 245112;
-//
-//			APSServiceImpl.getInstance().APS_ChangeNumber(wLoginUser, wOrderID, wAPSBOMID);
-
-//			ServiceResult<List<AndonDayPlanAreaCashingRate>> wRst = AndonServiceImpl.getInstance()
-//					.Andon_QueryAreaDayPlanRate(wLoginUser);
-//			for (AndonDayPlanAreaCashingRate wItem : wRst.Result) {
-//				System.out.println(wItem.toString());
-//			}
-
-//			ServiceResult<Integer> wRst = APSServiceImpl.getInstance().APS_QueryBOMID(wLoginUser, 31572, 4, "CS");
-//			System.out.println(wRst.Result);
-
-//			ServiceResult<AndonLocomotiveProductionStatus> wRst = AndonServiceImpl.getInstance()
-//					.Andon_QueryProductionStatus(wLoginUser);
-//			System.out.println(wRst);
-
-//			ServiceResult<SFCStationPerson> wRst = SFCServiceImpl.getInstance().SFC_QueryStationPerson(wLoginUser, 139);
-//			System.out.println(wRst.Result);
-
-//			ServiceResult<Integer> wRst = SFCServiceImpl.getInstance().SFC_UpdateQuota(wLoginUser);
-//			System.out.println(wRst);
 
 //			List<WMSLinePartLL> wHeaderList = new ArrayList<WMSLinePartLL>();
 //
@@ -217,7 +159,137 @@ public class TestController extends BaseController {
 //			WMSReturn wReturn = MyHelperServiceImpl.getInstance().WMS_PostLL(wWMSLinePartLLs);
 //			System.out.println(wReturn);
 
-			MyHelperServiceImpl.getInstance().WMS_TestSend();
+			OutResult<Integer> wErrorCode = new OutResult<Integer>(0);
+			List<APSSchedulingVersionBPM> wList = APSSchedulingVersionBPMDAO.getInstance().SelectList(wLoginUser, -1,
+					"WP2021090006", -1, -1, null, "", -1, -1, null, null, null, wErrorCode);
+			if (wList.size() > 0) {
+				APSSchedulingVersion wScheduling = APSSchedulingVersionDAO.getInstance().SelectByVersionNo(wLoginUser,
+						wList.get(0).VersionNo, wErrorCode);
+				if (wScheduling != null && wScheduling.ID > 0) {
+					wScheduling.APSTaskPartList = APSTaskPartDAO.getInstance().SelectListByIDList(wLoginUser,
+							wScheduling.TaskPartIDList, wErrorCode);
+					// 触发物料需求计划
+					APS_TriggerMRP(wLoginUser, wList.get(0), wScheduling);
+				}
+			}
+		} catch (Exception ex) {
+			logger.error(ex.toString());
+		}
+	}
+
+	/**
+	 * 触发物料需求计划
+	 */
+	private void APS_TriggerMRP(BMSEmployee wLoginUser, APSSchedulingVersionBPM wAPSSchedulingVersionBPM,
+			APSSchedulingVersion wScheduling) {
+		try {
+			OutResult<Integer> wErrorCode = new OutResult<Integer>(0);
+			// ①遍历工位计划
+			for (APSTaskPart wAPSTaskPart : wScheduling.APSTaskPartList) {
+				// ②禁用该订单、该工位的物料需求计划(必换件、委外必修件)
+				MRPMaterialPlanDAO.getInstance().DisableMainPlan(wLoginUser, wAPSTaskPart.OrderID, wAPSTaskPart.PartID,
+						wErrorCode);
+				if (wErrorCode.Result != 0) {
+					logger.error("禁用必换和必修件物料需求计划失败,建议检查程序!");
+					return;
+				}
+				// ③查询台车bom(必换件、委外必修件)
+				List<APSBOMItem> wList = APSBOMItemDAO.getInstance().APS_QueryBOMItemList(wLoginUser,
+						wAPSTaskPart.OrderID, "", "", -1, -1, -1, wAPSTaskPart.PartID, -1, -1, "", -1, -1, -1, null, -1,
+						-1, -1, wErrorCode);
+				if (wList == null || wList.size() <= 0) {
+					continue;
+				}
+				// ④创建物料需求计划
+				for (APSBOMItem apsbomItem : wList) {
+					MRPMaterialPlan wMRPMaterialPlan = new MRPMaterialPlan(0, apsbomItem.ProductID, apsbomItem.LineID,
+							apsbomItem.CustomerID, apsbomItem.OrderID, apsbomItem.PartNo, apsbomItem.PartID,
+							apsbomItem.PartPointID, apsbomItem.MaterialID, apsbomItem.MaterialName,
+							apsbomItem.MaterialNo, 1, apsbomItem.Number, wAPSTaskPart.StartTime,
+							wAPSSchedulingVersionBPM.Code, 1, Calendar.getInstance(), wLoginUser.ID,
+							apsbomItem.ReplaceType, apsbomItem.OutsourceType, 1, apsbomItem.WBSNo,
+							apsbomItem.AssessmentType);
+					MRPMaterialPlanDAO.getInstance().Update(wLoginUser, wMRPMaterialPlan, wErrorCode);
+				}
+				// ⑤触发物料配送单
+				TriggerMaterialDistributionSheet(wLoginUser, wList, wAPSTaskPart);
+			}
+		} catch (Exception ex) {
+			logger.error(ex.toString());
+		}
+	}
+
+	/**
+	 * 触发物料配送单
+	 * 
+	 * @param wLoginUser   登录信息
+	 * @param wList        必换件、委外必修件台车bom
+	 * @param wAPSTaskPart 工位计划
+	 */
+	private void TriggerMaterialDistributionSheet(BMSEmployee wLoginUser, List<APSBOMItem> wList,
+			APSTaskPart wAPSTaskPart) {
+		try {
+			OutResult<Integer> wErrorCode = new OutResult<Integer>(0);
+
+			OMSOrder wOMSOrder = OMSOrderDAO.getInstance().SelectByID(wLoginUser, wList.get(0).OrderID, wErrorCode);
+
+			// 判断需求是否已提
+			List<WMSPickDemand> wExsitList = WMSPickDemandDAO.getInstance().SelectList(wLoginUser, -1,
+					String.valueOf(WMSOrderType.LineOrder.getValue()), "", wList.get(0).ProductID, wList.get(0).LineID,
+					wList.get(0).CustomerID, wList.get(0).OrderID, wList.get(0).PartID, -1, null, null, null,
+					wErrorCode);
+			if (wExsitList.size() > 0) {
+				// 取消计划，或不指定
+				return;
+			}
+			// ③创建领料需求单
+			Calendar wBaseTime = Calendar.getInstance();
+			wBaseTime.set(2000, 0, 1, 0, 0, 0);
+
+			String wCode = WMSPickDemandDAO.getInstance().GetNewCode(wLoginUser, wErrorCode);
+			Calendar wTime = wAPSTaskPart.StartTime;
+
+			Calendar expectTime1 = Calendar.getInstance();
+			expectTime1.set(wTime.get(Calendar.YEAR), wTime.get(Calendar.MONTH), wTime.get(Calendar.DATE), 0, 0, 0);
+
+			Calendar expectTime2 = Calendar.getInstance();
+			expectTime2.set(wTime.get(Calendar.YEAR), wTime.get(Calendar.MONTH), wTime.get(Calendar.DATE), 12, 0, 0);
+
+			String monitorNo = "";
+			String monitor = "";
+			BMSEmployee wUser = WMSPickDemandDAO.getInstance().GetMonitorByPart(wLoginUser, wList.get(0).PartID,
+					wErrorCode);
+			if (StringUtils.isNotEmpty(wUser.LoginID)) {
+				monitorNo = wUser.LoginID;
+				monitor = wUser.Name;
+			}
+
+			WMSPickDemand wWMSPickDemand = new WMSPickDemand(0, "1900",
+					String.valueOf(WMSOrderType.LineOrder.getValue()), wCode, expectTime1, expectTime2, monitorNo,
+					monitor, wList.get(0).ProductID, wList.get(0).ProductNo, wList.get(0).LineID, wList.get(0).LineName,
+					wList.get(0).CustomerID, APSConstans.GetCRMCustomer(wList.get(0).CustomerID).CustomerName,
+					APSConstans.GetCRMCustomer(wList.get(0).CustomerID).CustomerCode, wList.get(0).OrderID,
+					wList.get(0).PartNo, wList.get(0).PartID, APSConstans.GetFPCPartName(wList.get(0).PartID),
+					APSConstans.GetFPCPart(wList.get(0).PartID).Code, "", "", wBaseTime, "", "", wBaseTime, 1,
+					wLoginUser.ID, wLoginUser.Name, Calendar.getInstance(), wList.get(0).WBSNo);
+			int wDemandID = WMSPickDemandDAO.getInstance().Update(wLoginUser, wWMSPickDemand, wErrorCode);
+			if (wDemandID <= 0) {
+				return;
+			}
+			// ④创建领料需求单明细
+			int wIndex = 1;
+			for (APSBOMItem wMSSBOMItem : wList) {
+				WMSPickDemandItem wWMSPickDemandItem = new WMSPickDemandItem(0, wDemandID, wMSSBOMItem.MaterialID,
+						wMSSBOMItem.MaterialNo, wMSSBOMItem.MaterialName, wMSSBOMItem.Number, wOMSOrder.OrderNo,
+						wMSSBOMItem.PartPointID,
+						APSConstans.GetFPCPartPoint(wMSSBOMItem.PartPointID).Code.replace("PS-", ""),
+						APSConstans.GetFPCPartPointName(wMSSBOMItem.PartPointID), String.valueOf(wIndex), "",
+						wMSSBOMItem.ReplaceType, SFCReplaceType.getEnumType(wMSSBOMItem.ReplaceType).getLable(),
+						wMSSBOMItem.OutsourceType, SFCOutSourceType.getEnumType(wMSSBOMItem.OutsourceType).getLable(),
+						"", "");
+				WMSPickDemandItemDAO.getInstance().Update(wLoginUser, wWMSPickDemandItem, wErrorCode);
+				wIndex++;
+			}
 		} catch (Exception ex) {
 			logger.error(ex.toString());
 		}

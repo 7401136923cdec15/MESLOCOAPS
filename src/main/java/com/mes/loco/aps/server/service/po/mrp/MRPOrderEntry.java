@@ -25,7 +25,7 @@ public class MRPOrderEntry implements Serializable {
 
 	public int GradeID = 0; // 层级ID
 
-	public List<MRPMaterial> MaterialList = new ArrayList<>(); // MRP物料需求
+	public List<MRPMaterialPlan> MaterialList = new ArrayList<>(); // MRP物料需求
 
 	public List<MRPPurchase> PurchaseList = new ArrayList<>(); // 采购建议
 

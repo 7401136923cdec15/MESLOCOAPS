@@ -1,5 +1,6 @@
 package com.mes.loco.aps.server.controller.wms;
 
+import java.util.Calendar;
 import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
@@ -47,17 +48,21 @@ public class WMSPickDemandController extends BaseController {
 
 			BMSEmployee wLoginUser = GetSession(request);
 
-			int wOrderType = StringUtils.parseInt(request.getParameter("OrderType"));
+			String wOrderType = StringUtils.parseString(request.getParameter("OrderType"));
 			String wDemandNo = StringUtils.parseString(request.getParameter("DemandNo"));
 			int wProductID = StringUtils.parseInt(request.getParameter("ProductID"));
 			int wLineID = StringUtils.parseInt(request.getParameter("LineID"));
 			int wCustomerID = StringUtils.parseInt(request.getParameter("CustomerID"));
-			String wPartNo = StringUtils.parseString(request.getParameter("PartNo"));
+			int wOrderID = StringUtils.parseInt(request.getParameter("OrderID"));
 			int wPartID = StringUtils.parseInt(request.getParameter("PartID"));
+			String wMaterial = StringUtils.parseString(request.getParameter("Material"));
 			int wStatus = StringUtils.parseInt(request.getParameter("Status"));
+			Calendar wStartTime = StringUtils.parseCalendar(request.getParameter("StartTime"));
+			Calendar wEndTime = StringUtils.parseCalendar(request.getParameter("EndTime"));
 
 			ServiceResult<List<WMSPickDemand>> wServiceResult = wWMSService.WMS_QueryPickDemandList(wLoginUser,
-					wOrderType, wDemandNo, wProductID, wLineID, wCustomerID, wPartNo, wPartID, wStatus);
+					wOrderType, wDemandNo, wProductID, wLineID, wCustomerID, wOrderID, wPartID, wStatus, wMaterial,
+					wStartTime, wEndTime);
 
 			if (StringUtils.isEmpty(wServiceResult.FaultCode)) {
 				wResult = GetResult(RetCode.SERVER_CODE_SUC, "", wServiceResult.Result, null);
@@ -129,6 +134,40 @@ public class WMSPickDemandController extends BaseController {
 
 			ServiceResult<Integer> wServiceResult = wWMSService.WMS_TriggerPickDemandTask(wLoginUser, wOrderID,
 					wPartID);
+
+			if (StringUtils.isEmpty(wServiceResult.FaultCode)) {
+				wResult = GetResult(RetCode.SERVER_CODE_SUC, "", null, wServiceResult.Result);
+			} else {
+				wResult = GetResult(RetCode.SERVER_CODE_ERR, wServiceResult.FaultCode);
+			}
+		} catch (Exception ex) {
+			logger.error(ex.toString());
+			wResult = GetResult(RetCode.SERVER_CODE_ERR, ex.toString(), null, null);
+		}
+		return wResult;
+	}
+
+	/**
+	 * 手动推送领料需求
+	 */
+	@GetMapping("/ManualPush")
+	public Object ManualPush(HttpServletRequest request) {
+		Object wResult = new Object();
+		try {
+			if (CheckCookieEmpty(request)) {
+				wResult = GetResult(RetCode.SERVER_CODE_UNLOGIN, "");
+				return wResult;
+			}
+
+			BMSEmployee wLoginUser = GetSession(request);
+
+			int wDemandID = StringUtils.parseInt(request.getParameter("DemandID"));
+
+			if (wDemandID <= 0) {
+				return GetResult(RetCode.SERVER_CODE_ERR, RetCode.SERVER_RST_ERROR_OUT);
+			}
+
+			ServiceResult<Integer> wServiceResult = wWMSService.WMS_ManualPush(wLoginUser, wDemandID);
 
 			if (StringUtils.isEmpty(wServiceResult.FaultCode)) {
 				wResult = GetResult(RetCode.SERVER_CODE_SUC, "", null, wServiceResult.Result);

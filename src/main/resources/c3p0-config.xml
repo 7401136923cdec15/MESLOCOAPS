@@ -2,7 +2,7 @@
 <c3p0-config>
     <named-config name="Mysql_dataSource">
         <property name="driverClass">com.mysql.cj.jdbc.Driver</property>
-        <property name="jdbcUrl">jdbc:mysql://127.0.0.1:3306/iplantmes?useUnicode=true&amp;characterEncoding=utf-8&amp;serverTimezone=Asia/Shanghai&amp;useSSL=false&amp;autoReconnect=true&amp;zeroDateTimeBehavior=convertToNull</property>
+        <property name="jdbcUrl">jdbc:mysql://192.168.140.132:3306/iplantmes?useUnicode=true&amp;characterEncoding=utf-8&amp;serverTimezone=Asia/Shanghai&amp;useSSL=false&amp;autoReconnect=true&amp;zeroDateTimeBehavior=convertToNull</property>
         <property name="user">shris</property>
         <property name="password">Shris_123</property> 
         <property name="acquireIncrement">5</property>
@@ -21,7 +21,7 @@
     
     <named-config name="SQLServer_dataSource">
         <property name="driverClass">com.microsoft.sqlserver.jdbc.SQLServerDriver</property>
-        <property name="jdbcUrl">jdbc:sqlserver://127.0.0.1;databaseName=ICCO</property>
+        <property name="jdbcUrl">jdbc:sqlserver://192.168.140.132;databaseName=ICCO</property>
         <property name="user">sa</property>
         <property name="password">shris</property> 
         <property name="acquireIncrement">2</property>

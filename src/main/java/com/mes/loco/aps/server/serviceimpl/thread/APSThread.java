@@ -3,6 +3,7 @@ package com.mes.loco.aps.server.serviceimpl.thread;
 import com.mes.loco.aps.server.service.po.OutResult;
 import com.mes.loco.aps.server.service.po.bms.BMSEmployee;
 import com.mes.loco.aps.server.service.po.sfc.SFCAttemptRun;
+import com.mes.loco.aps.server.service.utils.Configuration;
 import com.mes.loco.aps.server.service.utils.StringUtils;
 import com.mes.loco.aps.server.serviceimpl.APSServiceImpl;
 import com.mes.loco.aps.server.serviceimpl.RPTServiceImpl;
@@ -56,14 +57,7 @@ public class APSThread implements DisposableBean {
 				while (this.mIsStart) {
 					try {
 						Thread.sleep(1000L);
-						if (this.Ticks % 1 == 0) {
-							// 自动创建台车BOM
-							APSServiceImpl.getInstance().APS_AutoCreateBOM(AdminUser);
-							// 自动更新台车BOM
-							APSServiceImpl.getInstance().APS_AutoUpdateBOM(AdminUser);
-							// 自动更新台车订单
-							APSServiceImpl.getInstance().APS_AutoUpdateOrder(AdminUser);
-						}
+
 						if (this.Ticks % 2 == 0) {
 							// 安灯数据
 							AndonDAO.getInstance().Andon_UpdateBusiness(this.AdminUser);
@@ -93,9 +87,19 @@ public class APSThread implements DisposableBean {
 							RPTServiceImpl.getInstance().RPT_SetProductShifts(AdminUser);
 						}
 
+						// 一小时一轮询
+						String sendInteval = Configuration.readConfigString("sendInteval", "config/config");
+						int wInterval = StringUtils.parseInt(sendInteval);
+						if (this.Ticks % wInterval == 0) {
+							// 自动将物料需求计划生成物料配送单
+							APSServiceImpl.getInstance().APS_AutoCreateDeliveryOrder(AdminUser);
+							// 自动推送物料配送单至WMS
+							APSServiceImpl.getInstance().APS_AutoSendDemandList(AdminUser);
+						}
+
 						this.Ticks++;
 
-						if (Ticks > 1000)
+						if (Ticks > 10000)
 							this.Ticks = 1;
 
 					} catch (Exception ex) {

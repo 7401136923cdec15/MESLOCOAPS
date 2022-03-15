@@ -250,4 +250,6 @@ public interface SFCService {
 	ServiceResult<Integer> SFC_BOMTaskCodeReset(BMSEmployee wLoginUser);
 
 	ServiceResult<Integer> SFC_UpdateBOMTaskSubmitTime(BMSEmployee wLoginUser);
+
+	ServiceResult<Integer> SFC_OutsourcingProcess(BMSEmployee wLoginUser, int wSFCBomTaskID);
 }
